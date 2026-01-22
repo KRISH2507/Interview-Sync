@@ -54,7 +54,11 @@ const interviewSchema = new mongoose.Schema(
       default: "in-progress",
     },
 
-    averageScore: {
+    totalQuestions: {
+      type: Number,
+    },
+
+    overallScore: {
       type: Number, // 0–100
     },
   },

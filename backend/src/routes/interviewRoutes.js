@@ -3,10 +3,11 @@ import {
   startInterview,
   submitInterview,
 } from "../controllers/interviewController.js";
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/start", startInterview);
-router.post("/submit", submitInterview);
+router.post("/start", protect, startInterview);
+router.post("/submit", protect, submitInterview);
 
 export default router;

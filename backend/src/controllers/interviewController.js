@@ -1,170 +1,140 @@
 import Interview from "../models/Interview.js";
 import Resume from "../models/Resume.js";
-import openai from "../config/ai.js";
+import openai from "../services/openai.js";
+import { generateInterviewQuestions } from "../services/interviewAIService.js";
+import { normalizeQuestions } from "../utils/questionValidator.js";
 
-/* ================= UTIL ================= */
+/* ================= FALLBACK QUESTIONS ================= */
 
-const KNOWN_SKILLS = [
-  "react",
-  "node",
-  "express",
-  "mongodb",
-  "javascript",
-  "typescript",
-  "python",
-  "java",
-  "sql",
-  "mysql",
-  "postgresql",
-  "aws",
-  "docker",
-  "git",
-  "rest",
-  "api",
-];
-
-const FALLBACK_QUESTIONS = {
-  react: {
-    question: "Which React hook is used to manage component state?",
-    options: ["useRef", "useEffect", "useState", "useMemo"],
-    correctAnswerIndex: 2,
-    difficulty: "easy",
+const FALLBACK_QUESTIONS = [
+  {
+    question: "How would you diagnose high latency in a Node.js API?",
+    options: [
+      "Increase server memory",
+      "Profile database queries and async calls",
+      "Restart the server",
+      "Rewrite the frontend",
+    ],
+    correctAnswerIndex: 1,
+    difficulty: "medium",
+    topic: "backend",
+  },
+  {
+    question: "What causes unnecessary re-renders in React?",
+    options: [
+      "Using props correctly",
+      "Changing state references",
+      "Using memoization",
+      "Using keys in lists",
+    ],
+    correctAnswerIndex: 1,
+    difficulty: "medium",
     topic: "react",
   },
-  node: {
-    question: "Which Node.js module is used to create an HTTP server?",
-    options: ["http", "fs", "path", "os"],
-    correctAnswerIndex: 0,
-    difficulty: "easy",
+  {
+    question: "When should you use database transactions?",
+    options: [
+      "For read-only queries",
+      "For dependent write operations",
+      "For caching",
+      "For indexing",
+    ],
+    correctAnswerIndex: 1,
+    difficulty: "medium",
+    topic: "database",
+  },
+  {
+    question: "Why would you use a message queue in a backend system?",
+    options: [
+      "To speed up UI rendering",
+      "To handle async background tasks",
+      "To replace REST APIs",
+      "To store logs",
+    ],
+    correctAnswerIndex: 1,
+    difficulty: "medium",
+    topic: "architecture",
+  },
+  {
+    question: "What leads to memory leaks in Node.js applications?",
+    options: [
+      "Async/await usage",
+      "Uncleared event listeners",
+      "REST APIs",
+      "Promises",
+    ],
+    correctAnswerIndex: 1,
+    difficulty: "medium",
     topic: "node",
   },
-  javascript: {
-    question: "Which keyword is used to declare a constant in JavaScript?",
-    options: ["var", "let", "const", "static"],
-    correctAnswerIndex: 2,
-    difficulty: "easy",
-    topic: "javascript",
-  },
-  mongodb: {
-    question: "Which MongoDB method inserts a document?",
-    options: ["find()", "insertOne()", "update()", "delete()"],
-    correctAnswerIndex: 1,
-    difficulty: "easy",
-    topic: "mongodb",
-  },
-  sql: {
-    question: "Which SQL command retrieves data?",
-    options: ["INSERT", "UPDATE", "DELETE", "SELECT"],
-    correctAnswerIndex: 3,
-    difficulty: "easy",
-    topic: "sql",
-  },
-};
+];
 
 /* ================= START INTERVIEW ================= */
 
 export const startInterview = async (req, res) => {
   try {
-    const { userId } = req.body;
-    if (!userId) {
-      return res.status(400).json({ message: "userId required" });
+    const userId = req.user.id; // ✅ JWT-based
+
+    console.log("Starting interview for user:", userId);
+
+    const resume = await Resume.findOne({ user: userId }).sort({
+      createdAt: -1,
+    });
+
+    if (!resume) {
+      return res.status(400).json({ message: "No resume found. Please upload a resume first." });
     }
 
-    const resume = await Resume.findOne({ user: userId }).sort({ createdAt: -1 });
-    if (!resume || !resume.rawText) {
-      return res.status(400).json({
-        message: "Resume text missing. Upload resume again.",
-      });
+    if (!resume.rawText || resume.rawText.trim().length === 0) {
+      return res.status(400).json({ message: "Resume is empty. Please upload a valid resume." });
     }
 
-    const resumeLower = resume.rawText.toLowerCase();
+    console.log("Resume found, generating questions...");
 
-    let detectedSkills = KNOWN_SKILLS.filter((skill) =>
-      resumeLower.includes(skill)
-    );
+    // 1️⃣ Try AI first
+    let questions = await generateInterviewQuestions(resume.rawText);
 
-    // ✅ NEVER BLOCK INTERVIEW
-    if (detectedSkills.length === 0) {
-      detectedSkills = ["javascript", "node", "sql"];
+    // 2️⃣ Validate AI output
+    if (Array.isArray(questions) && questions.length >= 5) {
+      console.log("✅ Using AI-generated questions");
+    } else {
+      console.log("⚠️ AI generation failed or returned invalid questions, using preseeded fallback");
+      questions = null;
     }
 
-    let questionsFromAI = [];
-
-    try {
-      const aiResponse = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: `
-Generate MCQ interview questions for a Computer Science candidate.
-
-Rules:
-- Focus ONLY on software development topics
-- Prefer these skills: ${detectedSkills.join(", ")}
-- No general knowledge or trivia
-- 4 options, 1 correct answer
-- Return ONLY valid JSON
-            `,
-          },
-          {
-            role: "user",
-            content: resume.rawText.slice(0, 3000),
-          },
-        ],
-      });
-
-      const raw = aiResponse.choices[0].message.content;
-      const cleaned = raw.replace(/```json|```/g, "").trim();
-      questionsFromAI = JSON.parse(cleaned);
-    } catch {
-      questionsFromAI = [];
-    }
-
-    const validated = questionsFromAI.filter((q) =>
-      detectedSkills.some(
-        (s) =>
-          q.topic?.toLowerCase().includes(s) ||
-          q.question.toLowerCase().includes(s)
-      )
-    );
-
-    let finalQuestions = validated.slice(0, 5);
-
-    if (finalQuestions.length < 5) {
-      finalQuestions = detectedSkills
-        .map((s) => FALLBACK_QUESTIONS[s])
-        .filter(Boolean)
+    // 3️⃣ Fallback if AI fails
+    if (!questions) {
+      console.log("📚 Using preseeded fallback questions");
+      questions = FALLBACK_QUESTIONS
+        .sort(() => Math.random() - 0.5)
         .slice(0, 5);
     }
 
-    const questions = finalQuestions.map((q) => ({
-      question: q.question,
-      options: q.options,
-      correctAnswer: q.correctAnswerIndex,
-      difficulty: q.difficulty || "easy",
-      topic: q.topic,
-    }));
+    console.log(`Questions prepared: ${questions.length} questions`);
 
+    // 4️⃣ Normalize structure
+    const normalized = normalizeQuestions(questions);
+
+    console.log("Questions normalized, creating interview...");
+
+    // 5️⃣ Save interview
     const interview = await Interview.create({
       user: userId,
       resume: resume._id,
-      questions,
+      questions: normalized,
       status: "in-progress",
+      totalQuestions: normalized.length,
     });
+
+    console.log("Interview created:", interview._id);
 
     res.status(201).json({
       interviewId: interview._id,
-      questions: questions.map((q) => ({
-        question: q.question,
-        options: q.options,
-        difficulty: q.difficulty,
-        topic: q.topic,
-      })),
+      questions: normalized.map(({ correctAnswer, ...q }) => q),
     });
   } catch (err) {
     console.error("Start interview error:", err);
-    res.status(500).json({ message: "Failed to start interview" });
+    res.status(500).json({ message: "Failed to start interview", error: err.message });
   }
 };
 
@@ -196,7 +166,7 @@ export const submitInterview = async (req, res) => {
       totalScore += q.score;
     });
 
-    interview.averageScore = Math.round(
+    interview.overallScore = Math.round(
       (totalScore / (interview.questions.length * 10)) * 100
     );
 
@@ -205,11 +175,31 @@ export const submitInterview = async (req, res) => {
 
     res.json({
       message: "Interview completed",
-      averageScore: interview.averageScore,
+      overallScore: interview.overallScore,
       questions: interview.questions,
     });
   } catch (err) {
     console.error("Submit interview error:", err);
     res.status(500).json({ message: "Failed to submit interview" });
   }
+};
+
+/* ================= RESUME ANALYSIS (AI) ================= */
+
+export const analyzeResumeWithAI = async (resumeText) => {
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      {
+        role: "system",
+        content: "You are an expert resume reviewer.",
+      },
+      {
+        role: "user",
+        content: `Analyze this resume and extract skills, experience, and strengths:\n${resumeText}`,
+      },
+    ],
+  });
+
+  return response.choices[0].message.content;
 };

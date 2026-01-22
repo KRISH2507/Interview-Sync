@@ -1,42 +1,102 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { AnimatePresence } from "framer-motion";
 
-// Public pages
 import LandingPage from "./components/landing-page";
 import AuthPage from "./components/auth-page";
 
-// Candidate pages
 import CandidateDashboard from "./components/candidate-dashboard";
 import CandidateProfile from "./components/candidate-profile";
 import InterviewPractice from "./components/interview-practice";
 import ResumeUploadPage from "./components/resume-upload-page";
-
-// Recruiter pages
 import RecruiterDashboard from "./components/recruiter-dashboard";
+import QuizHistory from "./components/quiz-history";
+import { QuizCompletion } from "./components/quiz-completion";
 
-function App() {
+import PrivateRoute from "./components/PrivateRoute";
+
+function AnimatedRoutes() {
+  const location = useLocation();
+
   return (
-    <Router>
-      <Routes>
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
         {/* ===== PUBLIC ===== */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<AuthPage />} />
 
-        {/* ===== CANDIDATE ===== */}
+        {/* ===== CANDIDATE (PROTECTED) ===== */}
         <Route
           path="/candidate/dashboard"
-          element={<CandidateDashboard />}
+          element={
+            <PrivateRoute>
+              <CandidateDashboard />
+            </PrivateRoute>
+          }
         />
-        <Route path="/profile" element={<CandidateProfile />} />
-        <Route path="/practice" element={<InterviewPractice />} />
-        <Route path="/upload" element={<ResumeUploadPage />} />
 
-        {/* ===== RECRUITER ===== */}
+        <Route
+          path="/profile"
+          element={
+            <PrivateRoute>
+              <CandidateProfile />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/practice"
+          element={
+            <PrivateRoute>
+              <InterviewPractice />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/completion"
+          element={
+            <PrivateRoute>
+              <QuizCompletion />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/upload"
+          element={
+            <PrivateRoute>
+              <ResumeUploadPage />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/history"
+          element={
+            <PrivateRoute>
+              <QuizHistory />
+            </PrivateRoute>
+          }
+        />
+
+        {/* ===== RECRUITER (OPTIONAL) ===== */}
         <Route
           path="/recruiter/dashboard"
-          element={<RecruiterDashboard />}
+          element={
+            <PrivateRoute>
+              <RecruiterDashboard />
+            </PrivateRoute>
+          }
         />
-        <Route path = "/dashboard" element={<CandidateDashboard />}/>
       </Routes>
+    </AnimatePresence>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AnimatedRoutes />
     </Router>
   );
 }

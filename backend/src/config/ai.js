@@ -1,12 +1,30 @@
 import "dotenv/config";
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const apiKey = process.env.OPENAI_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-if (!apiKey) {
-  throw new Error("OPENAI_API_KEY is missing at ai.js load time");
+// ===============================
+// OPTIONAL GEMINI CLIENT
+// ===============================
+let client = null;
+
+if (GEMINI_API_KEY) {
+  const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+
+  client = {
+    generateContent: async (prompt) => {
+      const model = genAI.getGenerativeModel({
+        model: "models/gemini-pro",
+      });
+
+      const result = await model.generateContent(prompt);
+      return result.response.text();
+    },
+  };
+} else {
+  console.warn(
+    "⚠️ GEMINI_API_KEY not found. Gemini AI is disabled."
+  );
 }
 
-const openai = new OpenAI({ apiKey });
-
-export default openai;
+export default client;
