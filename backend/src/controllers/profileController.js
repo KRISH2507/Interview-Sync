@@ -1,15 +1,36 @@
 import User from "../models/User.js";
 
 export const getProfile = async (req, res) => {
-  const { userId } = req.params;
-  const user = await User.findById(userId);
-  res.json(user);
+  try {
+    // Try JWT first, then URL param (for backward compatibility)
+    const userId = req.user?.id || req.params.userId;
+    if (!userId) return res.status(400).json({ message: "userId required" });
+
+    const user = await User.findById(userId).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json(user);
+  } catch (err) {
+    console.error("Get profile error:", err);
+    res.status(500).json({ message: "Failed to get profile" });
+  }
 };
 
 export const updateProfile = async (req, res) => {
-  const { userId } = req.params;
-  const updated = await User.findByIdAndUpdate(userId, req.body, {
-    new: true,
-  });
-  res.json(updated);
+  try {
+    // Try JWT first, then URL param (for backward compatibility)
+    const userId = req.user?.id || req.params.userId;
+    if (!userId) return res.status(400).json({ message: "userId required" });
+
+    const updated = await User.findByIdAndUpdate(userId, req.body, {
+      new: true,
+      select: "-password",
+    });
+    if (!updated) return res.status(404).json({ message: "User not found" });
+
+    res.json(updated);
+  } catch (err) {
+    console.error("Update profile error:", err);
+    res.status(500).json({ message: "Failed to update profile" });
+  }
 };

@@ -1,0 +1,31 @@
+✅ Connected to MongoDB
+
+📊 Interview Status Report:
+Total interviews: 121
+
+Status distribution:
+  in-progress: 97
+  completed: 24
+
+Score distribution:
+  With overallScore: 121
+  Without overallScore: 0
+
+Completed interviews average score: 45.04%
+
+Sample completed interviews:
+  ID: 696261c03159aada9b86043c, Score: 100%, Questions: 5, Status: completed
+  ID: 69626593e48c438a98db1fba, Score: 80%, Questions: 5, Status: completed
+  ID: 696269891891806a3d24897b, Score: 0%, Questions: 5, Status: completed
+  ID: 69626cf72767caacfeea05f4, Score: 0%, Questions: 5, Status: completed
+  ID: 696e2e53828a32d84c9887ab, Score: 0%, Questions: 5, Status: completed
+
+⚠️ Found 97 in-progress interviews with questions
+Sample in-progress interviews:
+  ID: 695e44b5af127408f6171b03, Score: 90%, Questions: 3, Has answers: false
+  ID: 696237259acd0c52f3b7a422, Score: N/A%, Questions: 5, Has answers: false
+  ID: 696237259acd0c52f3b7a429, Score: N/A%, Questions: 5, Has answers: false
+  ID: 696237809acd0c52f3b7a440, Score: N/A%, Questions: 5, Has answers: false
+  ID: 696237809acd0c52f3b7a447, Score: N/A%, Questions: 5, Has answers: false
+
+✅ Disconnected from MongoDB

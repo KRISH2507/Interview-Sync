@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 import { Button } from "./ui/button";
+import { ThemeToggle } from "./ui/theme-toggle";
+import { GradientText } from "./ui/gradient-text";
 
 export default function DashboardLayout({ children, role }) {
   const location = useLocation();
@@ -14,6 +16,7 @@ export default function DashboardLayout({ children, role }) {
     { href: "/upload", label: "Upload Resume", icon: "upload" },
     { href: "/profile", label: "Profile", icon: "user" },
     { href: "/practice", label: "Practice", icon: "practice" },
+    { href: "/history", label: "History", icon: "history" },
   ];
 
   const recruiterNavItems = [
@@ -61,6 +64,11 @@ export default function DashboardLayout({ children, role }) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
       ),
+      history: (
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
     };
     return icons[iconName];
   };
@@ -69,12 +77,16 @@ export default function DashboardLayout({ children, role }) {
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 border-r border-border bg-card transition-transform duration-300 lg:translate-x-0 ${
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 w-64 glass border-r border-border transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
       >
         <div className="flex h-16 items-center gap-2 border-b border-border px-6">
-          <span className="text-xl font-semibold">InterviewSync</span>
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-royal font-bold text-white shadow-glow">
+            IS
+          </div>
+          <span className="text-lg font-bold">
+            Interview<GradientText>Sync</GradientText>
+          </span>
         </div>
 
         <nav className="space-y-1 p-4">
@@ -82,11 +94,10 @@ export default function DashboardLayout({ children, role }) {
             <Link
               key={item.href}
               to={item.href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                pathname === item.href
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
+              className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${pathname === item.href
+                  ? "bg-gradient-royal text-white shadow-glow"
+                  : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
+                }`}
             >
               {getIcon(item.icon)}
               {item.label}
@@ -113,16 +124,17 @@ export default function DashboardLayout({ children, role }) {
 
       {/* Main content */}
       <div className="flex-1 lg:pl-64">
-        <header className="sticky top-0 z-30 border-b border-border bg-card">
+        <header className="sticky top-0 z-30 glass border-b border-border">
           <div className="flex h-16 items-center gap-4 px-4">
             <Button variant="ghost" size="sm" className="lg:hidden" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
               ☰
             </Button>
 
-            <div className="flex flex-1 justify-between">
-              <div className="text-sm text-muted-foreground">
-                Welcome back, {role === "candidate" ? "Candidate" : "Recruiter"}
+            <div className="flex flex-1 items-center justify-between">
+              <div className="text-sm font-medium">
+                Welcome back, <GradientText>{role === "candidate" ? "Candidate" : "Recruiter"}</GradientText>
               </div>
+              <ThemeToggle />
             </div>
           </div>
         </header>

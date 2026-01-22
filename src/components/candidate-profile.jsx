@@ -24,10 +24,9 @@ function Textarea({ className = "", ...props }) {
 }
 
 export default function CandidateProfile() {
-  const userId = localStorage.getItem("userId");
-
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [profile, setProfile] = useState({
     name: "",
@@ -44,22 +43,33 @@ export default function CandidateProfile() {
   const [newSkill, setNewSkill] = useState("");
 
   useEffect(() => {
-    if (!userId) return;
-
-    getProfile(userId)
-      .then((res) => {
+    async function loadProfile() {
+      try {
+        const res = await getProfile();
         setProfile({
           ...profile,
           ...res.data,
           skills: res.data.skills || [],
         });
-      })
-      .finally(() => setLoading(false));
-  }, [userId]);
+      } catch (err) {
+        console.error("Failed to load profile", err);
+        setError(err.response?.data?.message || "Failed to load profile");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadProfile();
+  }, []);
 
   const saveProfile = async () => {
-    await updateProfile(userId, profile);
-    setIsEditing(false);
+    try {
+      await updateProfile(profile);
+      setIsEditing(false);
+    } catch (err) {
+      console.error("Failed to save profile", err);
+      setError(err.response?.data?.message || "Failed to save profile");
+    }
   };
 
   const addSkill = () => {
@@ -82,7 +92,19 @@ export default function CandidateProfile() {
   if (loading) {
     return (
       <DashboardLayout role="candidate">
-        <div className="text-center">Loading profile...</div>
+        <div className="text-center py-8">Loading profile...</div>
+      </DashboardLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout role="candidate">
+        <Card className="border-destructive/50 bg-destructive/5">
+          <CardContent className="pt-6">
+            <p className="text-center text-destructive">{error}</p>
+          </CardContent>
+        </Card>
       </DashboardLayout>
     );
   }
