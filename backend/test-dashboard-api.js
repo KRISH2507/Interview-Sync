@@ -1,7 +1,7 @@
 // Quick test to call the dashboard API
 const token = 'YOUR_TOKEN_HERE'; // Replace with actual token from localStorage
 
-fetch('http://localhost:5000/api/dashboard', {
+fetch('https://interview-sync-ldw4.onrender.com/api/dashboard', {
     headers: {
         'Authorization': `Bearer ${token}`
     }

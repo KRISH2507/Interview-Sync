@@ -14,7 +14,7 @@ async function run() {
   form.append('email', 'testuser@example.com');
 
   try {
-    const res = await fetch('http://localhost:5000/api/resume/upload', {
+    const res = await fetch('https://interview-sync-ldw4.onrender.com/api/resume/upload', {
       method: 'POST',
       body: form,
       headers: form.getHeaders(),
