@@ -23,7 +23,6 @@ import { DashboardSkeleton } from "./loading/dashboard-skeleton";
 import { staggerContainer, staggerItem } from "../utils/animation-variants";
 import { Progress } from "./ui/progress";
 
-/* Score Badge Component */
 function ScoreBadge({ score }) {
   const getVariant = (score) => {
     if (score >= 80) return 'success';
@@ -42,7 +41,6 @@ export default function CandidateDashboard() {
   useEffect(() => {
     async function loadDashboard() {
       try {
-        // Use the protected endpoint (no userId needed, JWT handles it)
         const res = await api.get("/dashboard");
         setDashboard(res.data);
       } catch (err) {
@@ -78,7 +76,6 @@ export default function CandidateDashboard() {
 
   return (
     <DashboardLayout role="candidate">
-      {/* Floating Orbs Background */}
       <FloatingOrb color="primary" size="lg" className="top-0 right-0" />
       <FloatingOrb color="success" size="md" className="bottom-20 left-10" delay={2} />
       <FloatingOrb color="accent" size="sm" className="top-40 right-20" delay={4} />
@@ -113,7 +110,6 @@ export default function CandidateDashboard() {
           </Card>
         )}
 
-        {/* Stats Grid */}
         <motion.div
           className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
           variants={staggerContainer}
@@ -208,7 +204,6 @@ export default function CandidateDashboard() {
           </motion.div>
         </motion.div>
 
-        {/* Latest Quiz Results */}
         {latestQuiz && (
           <GlassCard className="overflow-hidden">
             <div className="p-6 border-b border-border bg-gradient-to-r from-blue-50/50 to-transparent dark:from-white/5 dark:to-transparent">
@@ -246,7 +241,6 @@ export default function CandidateDashboard() {
             </div>
 
             <CardContent className="p-0">
-              {/* Questions Preview (First 5 only) */}
               <div className="divide-y divide-white/5">
                 {(latestQuiz.questions || []).slice(0, 5).map((q, idx) => {
                   const isCorrect = q.userAnswer === q.correctAnswer;
@@ -306,7 +300,6 @@ export default function CandidateDashboard() {
           </GlassCard>
         )}
 
-        {/* View Full History Link */}
         {interviewHistory.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -337,7 +330,6 @@ export default function CandidateDashboard() {
           </motion.div>
         )}
 
-        {/* Empty State */}
         {interviewHistory.length === 0 && resumeScore > 0 && (
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-12">

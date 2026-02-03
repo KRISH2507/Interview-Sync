@@ -76,11 +76,9 @@ export default function ResumeUploadPage() {
     let interval;
 
     try {
-      // Fake progress for better UX
       interval = setInterval(() => {
         setUploadProgress((prev) => {
           if (prev >= 90) return prev;
-          // random increment between 1 and 10
           return prev + Math.floor(Math.random() * 10) + 1;
         });
       }, 500);
@@ -88,7 +86,7 @@ export default function ResumeUploadPage() {
       const formData = new FormData();
       formData.append("resume", file);
 
-      await uploadResume(formData); // ✅ JWT via interceptor
+      await uploadResume(formData);
 
       clearInterval(interval);
       setUploadProgress(100);
@@ -113,7 +111,6 @@ export default function ResumeUploadPage() {
 
   return (
     <DashboardLayout role="candidate">
-      {/* Background Ambience */}
       <FloatingOrb color="emerald" size="lg" className="top-20 right-20" />
       <FloatingOrb color="royal" size="md" className="bottom-10 left-10" delay={2} />
 

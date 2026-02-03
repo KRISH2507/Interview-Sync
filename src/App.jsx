@@ -20,11 +20,9 @@ function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        {/* ===== PUBLIC ===== */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<AuthPage />} />
 
-        {/* ===== CANDIDATE (PROTECTED) ===== */}
         <Route
           path="/candidate/dashboard"
           element={
@@ -79,7 +77,6 @@ function AnimatedRoutes() {
           }
         />
 
-        {/* ===== RECRUITER (OPTIONAL) ===== */}
         <Route
           path="/recruiter/dashboard"
           element={

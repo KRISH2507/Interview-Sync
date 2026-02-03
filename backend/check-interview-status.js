@@ -24,11 +24,9 @@ async function checkInterviewStatus() {
         const scoreDistribution = { withScore: 0, withoutScore: 0 };
 
         interviews.forEach(interview => {
-            // Count statuses
             const status = interview.status || 'undefined';
             statusCounts[status] = (statusCounts[status] || 0) + 1;
 
-            // Count scores
             if (interview.overallScore !== undefined && interview.overallScore !== null) {
                 scoreDistribution.withScore++;
             } else {
@@ -50,7 +48,6 @@ async function checkInterviewStatus() {
             const avgScore = completed.reduce((sum, i) => sum + (i.overallScore || 0), 0) / completed.length;
             log(`\nCompleted interviews average score: ${avgScore.toFixed(2)}%`);
 
-            // Show first few completed interviews
             log(`\nSample completed interviews:`);
             completed.slice(0, 5).forEach(i => {
                 log(`  ID: ${i._id}, Score: ${i.overallScore}%, Questions: ${i.questions?.length || 0}, Status: ${i.status}`);
@@ -59,7 +56,6 @@ async function checkInterviewStatus() {
             log('\n⚠️ No completed interviews found!');
         }
 
-        // Check if any interviews have questions but are in-progress
         const inProgressWithQuestions = interviews.filter(i =>
             i.status === 'in-progress' && i.questions && i.questions.length > 0
         );
@@ -76,7 +72,6 @@ async function checkInterviewStatus() {
         await mongoose.disconnect();
         log('\n✅ Disconnected from MongoDB');
 
-        // Write to file
         fs.writeFileSync('interview-status-report.txt', output.join('\n'));
         log('\n📄 Report saved to interview-status-report.txt');
     } catch (error) {

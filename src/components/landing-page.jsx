@@ -10,7 +10,6 @@ import { motion } from "framer-motion";
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-hidden relative">
-      {/* Floating Background Orbs - Modern clean aesthetic */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
         <FloatingOrb color="primary" size="xl" delay={0} className="top-0 left-0" />
         <FloatingOrb color="accent" size="lg" delay={2} className="top-1/4 right-0" />
@@ -18,10 +17,8 @@ export default function LandingPage() {
         <FloatingOrb color="emerald" size="sm" delay={6} className="bottom-0 right-1/4" />
       </div>
 
-      {/* ================= HEADER / NAVBAR ================= */}
       <header className="sticky top-0 z-50 glass border-b border-border">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
             <motion.div
               className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary font-bold text-white shadow-md"
@@ -35,7 +32,6 @@ export default function LandingPage() {
             </span>
           </Link>
 
-          {/* Nav Links */}
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
             <a href="#features" className="text-muted-foreground hover:text-primary transition-colors">
               Features
@@ -48,7 +44,6 @@ export default function LandingPage() {
             </a>
           </nav>
 
-          {/* Auth Buttons + Theme Toggle */}
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <Link to="/auth">
@@ -61,12 +56,9 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* ================= HERO SECTION ================= */}
       <section className="relative min-h-[90vh] flex items-center overflow-hidden">
-        {/* Animated gradient background */}
         <div className="absolute inset-0 bg-gradient-to-br from-royal-500/5 via-purple-500/5 to-pink-500/5 animate-gradient-xy" />
 
-        {/* Particle effect */}
         <div className="absolute inset-0">
           {[...Array(20)].map((_, i) => (
             <motion.div
@@ -96,7 +88,6 @@ export default function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
-            {/* Animated badge */}
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -157,7 +148,6 @@ export default function LandingPage() {
 
             </motion.div>
 
-            {/* Trust indicators */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -187,7 +177,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ================= STATS ================= */}
       <ScrollReveal variant="fadeUp">
         <section className="border-y border-border bg-gradient-to-b from-transparent via-primary/5 to-transparent">
           <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-6 py-16 md:grid-cols-4">
@@ -215,7 +204,6 @@ export default function LandingPage() {
         </section>
       </ScrollReveal>
 
-      {/* ================= FEATURES ================= */}
       <section id="features" className="px-6 py-32">
         <div className="mx-auto max-w-7xl">
           <ScrollReveal variant="fadeUp" className="text-center">
@@ -260,7 +248,6 @@ export default function LandingPage() {
                   transition={{ type: "spring", stiffness: 300 }}
                 >
                   <GlassCard className="h-full group hover:border-primary/60 transition-all relative overflow-hidden">
-                    {/* Hover gradient effect */}
                     <motion.div
                       className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
                     />
@@ -286,7 +273,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ================= HOW IT WORKS ================= */}
       <section id="how" className="px-6 py-32 bg-gradient-to-b from-transparent via-primary/5 to-transparent">
         <div className="mx-auto max-w-7xl">
           <ScrollReveal variant="fadeUp" className="text-center">
@@ -321,7 +307,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ================= PRICING ================= */}
       <section id="pricing" className="px-6 py-32">
         <div className="mx-auto max-w-7xl">
           <ScrollReveal variant="fadeUp" className="text-center">
@@ -390,7 +375,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ================= TESTIMONIALS ================= */}
       <ScrollReveal variant="fadeUp">
         <section className="px-6 py-32 bg-gradient-to-b from-transparent via-accent/5 to-transparent">
           <div className="mx-auto max-w-7xl">
@@ -457,11 +441,9 @@ export default function LandingPage() {
         </section>
       </ScrollReveal>
 
-      {/* ================= CTA ================= */}
       <ScrollReveal variant="scaleIn">
         <section className="px-6 py-32">
           <GlassCard className="mx-auto max-w-4xl p-12 md:p-16 text-center shadow-lg hover:shadow-glow transition-shadow relative overflow-hidden">
-            {/* Animated background gradient */}
             <motion.div
               className="absolute inset-0 bg-gradient-to-br from-royal-500/10 via-purple-500/10 to-pink-500/10 -z-10"
               animate={{
@@ -495,7 +477,6 @@ export default function LandingPage() {
         </section>
       </ScrollReveal>
 
-      {/* ================= FOOTER ================= */}
       <footer className="border-t border-border px-6 py-12 text-center">
         <div className="mx-auto max-w-7xl">
           <p className="text-sm text-muted-foreground">

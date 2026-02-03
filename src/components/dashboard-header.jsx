@@ -4,7 +4,6 @@ export function DashboardHeader({ role, onMenuClick }) {
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
       <div className="flex h-16 items-center gap-4 px-4 sm:px-6 lg:px-8">
-        {/* Mobile menu button */}
         <Button
           variant="ghost"
           className="p-2 lg:hidden"
@@ -26,13 +25,11 @@ export function DashboardHeader({ role, onMenuClick }) {
         </Button>
 
         <div className="flex flex-1 items-center justify-between">
-          {/* Greeting */}
           <div className="text-sm text-muted-foreground">
             Welcome back,{" "}
             {role === "candidate" ? "Candidate" : "Recruiter"}
           </div>
 
-          {/* Actions */}
           <div className="flex items-center gap-3">
             <Button variant="ghost" className="p-2">
               <svg
@@ -50,7 +47,6 @@ export function DashboardHeader({ role, onMenuClick }) {
               </svg>
             </Button>
 
-            {/* Avatar */}
             <div className="h-8 w-8 rounded-full bg-primary/10" />
           </div>
         </div>

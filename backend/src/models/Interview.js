@@ -12,7 +12,6 @@ const questionSchema = new mongoose.Schema({
     type: String,
   },
 
-  // MCQ specific
   options: {
     type: [String],
     default: [],
@@ -21,12 +20,11 @@ const questionSchema = new mongoose.Schema({
     type: Number, // index of correct option
   },
 
-  // User response & evaluation
   userAnswer: {
-    type: Number, // index selected by user
+    type: Number,
   },
   score: {
-    type: Number, // 0 or 10
+    type: Number,
   },
   feedback: {
     type: String,

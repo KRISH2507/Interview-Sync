@@ -23,14 +23,9 @@ export default function AuthPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState("");
 
-  // =========================
-  // GOOGLE SIGN-IN SETUP
-  // =========================
   useEffect(() => {
-    /* global google */
     const initGoogleSignIn = async () => {
       try {
-        // Wait for google library to load
         let attempts = 0;
         while (!window.google && attempts < 20) {
           await new Promise((resolve) => setTimeout(resolve, 250));
@@ -49,16 +44,13 @@ export default function AuthPage() {
           return;
         }
 
-        // Initialize Google Sign-In
         google.accounts.id.initialize({
           client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
           callback: handleGoogleLogin,
         });
 
-        // Render the button
         const googleBtnElement = document.getElementById("google-btn");
         if (googleBtnElement) {
-          // Clear previous button if exists
           googleBtnElement.innerHTML = "";
           
           google.accounts.id.renderButton(googleBtnElement, {
@@ -76,13 +68,11 @@ export default function AuthPage() {
     };
 
     initGoogleSignIn();
-  }, [isLogin]); // Re-render button when mode changes
+  }, [isLogin]);
 
   const handleGoogleLogin = async (response) => {
-    // Prevent multiple simultaneous requests
     if (googleLoading) return;
 
-    // Validate response
     if (!response || !response.credential) {
       console.error("Invalid Google response");
       setGoogleError("Failed to get Google credentials");
@@ -97,24 +87,20 @@ export default function AuthPage() {
         credential: response.credential,
       });
 
-      // Validate response data
       if (!res.data || !res.data.token) {
         throw new Error("Invalid response from server");
       }
 
-      // Store authentication data safely
       localStorage.setItem("token", res.data.token);
       if (res.data.user?.id) {
         localStorage.setItem("userId", res.data.user.id);
       }
 
-      // Determine route based on user role
       const redirectRoute =
         res.data.user?.role === "recruiter"
           ? "/recruiter/dashboard"
           : "/candidate/dashboard";
 
-      // Use a small delay to ensure state updates complete
       setTimeout(() => {
         navigate(redirectRoute);
       }, 100);
@@ -129,9 +115,6 @@ export default function AuthPage() {
     }
   };
 
-  // =========================
-  // EMAIL / PASSWORD LOGIN & REGISTER
-  // =========================
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -140,17 +123,14 @@ export default function AuthPage() {
       const endpoint = isLogin ? "/auth/login" : "/auth/register";
       const payload = { ...formData };
 
-      // Include role for registration
       if (!isLogin) {
         payload.role = role;
       }
 
       const res = await api.post(endpoint, payload);
 
-      // Store token
       localStorage.setItem("token", res.data.token);
 
-      // Redirect based on role
       if (role === "candidate") {
         navigate("/candidate/dashboard");
       } else {
@@ -166,12 +146,10 @@ export default function AuthPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4 relative overflow-hidden">
-      {/* Background Ambience */}
       <FloatingOrb color="primary" size="xl" className="-top-20 -right-20" delay={0} />
       <FloatingOrb color="accent" size="lg" className="bottom-0 left-0" delay={2} />
       <FloatingOrb color="success" size="md" className="top-1/3 -left-10" delay={4} />
 
-      {/* Animated particles */}
       <div className="absolute inset-0">
         {[...Array(15)].map((_, i) => (
           <motion.div
@@ -197,7 +175,6 @@ export default function AuthPage() {
       <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
 
       <div className="w-full max-w-md relative z-10">
-        {/* Logo */}
         <div className="mb-8 text-center">
           <Link to="/" className="inline-flex items-center gap-3 group">
             <motion.div
@@ -241,7 +218,6 @@ export default function AuthPage() {
               </p>
             </motion.div>
 
-            {/* ===== GOOGLE SIGN-IN BUTTON ===== */}
             <div className="mb-6">
               {googleLoading && (
                 <div className="flex items-center justify-center p-3 bg-blue-500/10 rounded-lg border border-blue-500/30">
@@ -258,7 +234,6 @@ export default function AuthPage() {
               )}
             </div>
 
-            {/* Google Error Display */}
             {googleError && !googleLoading && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
@@ -435,7 +410,6 @@ export default function AuthPage() {
           </div>
         </GlassCard>
 
-        {/* Footer simple links */}
         <div className="mt-8 flex justify-center gap-6 text-xs text-muted-foreground">
           <a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a>
           <a href="#" className="hover:text-foreground transition-colors">Terms of Service</a>

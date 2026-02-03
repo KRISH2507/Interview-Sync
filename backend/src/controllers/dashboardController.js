@@ -25,15 +25,12 @@ export const getDashboard = async (req, res) => {
       completedInterviews.reduce((sum, i) => sum + (i.overallScore || 0), 0) /
       (completedInterviews.length || 1);
 
-    // Profile Completion (practical)
-    // Consider both user profile fields and resume content
     let profileCompletion = 0;
     if (user?.name) profileCompletion += 10;
     if (user?.email) profileCompletion += 10;
     if (user?.bio && user.bio.trim() !== "") profileCompletion += 15;
     if (user?.skills && user.skills.length > 0) profileCompletion += 15;
 
-    // Resume contribution (up to 50)
     let resumeContribution = 0;
     if (resume) {
       if (resume.rawText && resume.rawText.length > 300) resumeContribution += 25;
@@ -44,14 +41,12 @@ export const getDashboard = async (req, res) => {
 
     profileCompletion += resumeContribution;
 
-    // Quiz completion bonus (up to 20%)
     if (completedInterviews.length > 0) {
       profileCompletion += Math.min(completedInterviews.length * 5, 20);
     }
 
     profileCompletion = Math.min(profileCompletion, 100);
 
-    // Resume Score (derive 0-100 from resume content)
     let resumeScore = 0;
     if (resume) {
       if (resume.summary && resume.summary.trim().length > 20) resumeScore += 30;
@@ -68,7 +63,6 @@ export const getDashboard = async (req, res) => {
           ? "Intermediate"
           : "Beginner";
 
-    // Detailed interview history with questions and answers
     const interviewHistory = completedInterviews.map((i) => {
       const correctAnswers = (i.questions || []).filter(q => q.userAnswer === q.correctAnswer).length;
       const totalQuestions = (i.questions || []).length;
@@ -95,7 +89,6 @@ export const getDashboard = async (req, res) => {
       };
     });
 
-    // Performance statistics
     const totalQuestionsAnswered = completedInterviews.reduce((sum, i) =>
       sum + (i.questions || []).length, 0
     );

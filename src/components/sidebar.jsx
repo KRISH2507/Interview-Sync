@@ -42,12 +42,10 @@ export function Sidebar({ role, isOpen, onClose }) {
 
   return (
     <>
-      {/* Sidebar */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 w-64 border-r border-border bg-card transition-transform duration-300 lg:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"
           }`}
       >
-        {/* Logo */}
         <div className="flex h-16 items-center gap-2 border-b border-border px-6">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-royal-600 to-purple-600 shadow-md">
             <span className="font-mono text-lg font-bold text-white">
@@ -59,7 +57,6 @@ export function Sidebar({ role, isOpen, onClose }) {
           </span>
         </div>
 
-        {/* Nav */}
         <nav className="space-y-1 p-4">
           {navItems.map((item) => (
             <SidebarItem
@@ -74,7 +71,6 @@ export function Sidebar({ role, isOpen, onClose }) {
           ))}
         </nav>
 
-        {/* Logout */}
         <div className="absolute bottom-4 left-4 right-4">
           <Button
             variant="outline"
@@ -89,7 +85,6 @@ export function Sidebar({ role, isOpen, onClose }) {
         </div>
       </aside>
 
-      {/* Mobile overlay */}
       {isOpen && (
         <div
           className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden"
@@ -97,7 +92,6 @@ export function Sidebar({ role, isOpen, onClose }) {
         />
       )}
 
-      {/* Logout Confirmation Dialog */}
       <ConfirmDialog
         isOpen={showLogoutConfirm}
         title="Confirm Logout"

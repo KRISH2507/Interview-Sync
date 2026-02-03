@@ -3,24 +3,19 @@ import User from "../models/User.js";
 import geminiClient from "../config/ai.js";
 import mammoth from "mammoth";
 
-/* ================= UPLOAD & ANALYZE RESUME ================= */
-
 export const uploadResume = async (req, res) => {
   try {
-    const userId = req.user.id; // ✅ JWT-based
+    const userId = req.user.id;
     const file = req.file;
 
     if (!file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    /* ================= EXTRACT TEXT FROM FILE ================= */
     let rawText = "";
 
     try {
       if (file.mimetype === "application/pdf") {
-        // For PDF, we'll need pdf-parse installed properly
-        // For now, return a message asking for DOCX or text
         return res.status(400).json({ 
           message: "PDF support coming soon. Please upload a DOCX file or provide text directly." 
         });
@@ -28,7 +23,6 @@ export const uploadResume = async (req, res) => {
         file.mimetype ===
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
       ) {
-        // Parse DOCX
         const result = await mammoth.extractRawText({ buffer: file.buffer });
         rawText = result.value;
       } else {
@@ -43,11 +37,8 @@ export const uploadResume = async (req, res) => {
       return res.status(400).json({ message: "Resume text too short (minimum 50 characters)" });
     }
 
-    /* ================= AI ANALYSIS (WITH FALLBACK) ================= */
-
     let analysis;
     
-    // Try AI analysis first if available
     if (geminiClient) {
       try {
         console.log("Calling Gemini API for resume analysis...");
@@ -83,13 +74,11 @@ Return ONLY the JSON object, no other text.`;
       }
     }
     
-    // Fallback: Simple text-based extraction (NO AI REQUIRED)
     if (!analysis) {
       console.log("Using simple text analysis (no AI)...");
       
       const textLower = rawText.toLowerCase();
       
-      // Extract skills from common keywords
       const commonSkills = [
         'javascript', 'python', 'java', 'react', 'node.js', 'typescript', 'html', 'css',
         'sql', 'mongodb', 'express', 'angular', 'vue', 'git', 'docker', 'kubernetes',
@@ -101,7 +90,6 @@ Return ONLY the JSON object, no other text.`;
         textLower.includes(skill.toLowerCase())
       );
       
-      // Estimate experience years from keywords
       let experienceYears = 0;
       const yearMatches = rawText.match(/(\d+)\s*(years?|yrs?)\s*(of)?\s*(experience|exp)/gi);
       if (yearMatches && yearMatches.length > 0) {
@@ -109,7 +97,6 @@ Return ONLY the JSON object, no other text.`;
         if (numbers) experienceYears = parseInt(numbers[0]);
       }
       
-      // Extract project mentions
       const projectKeywords = ['project', 'developed', 'built', 'created', 'designed', 'implemented'];
       const projects = [];
       const lines = rawText.split('\n');
@@ -121,7 +108,6 @@ Return ONLY the JSON object, no other text.`;
         }
       }
       
-      // Generate strengths based on content
       const strengths = [];
       if (foundSkills.length > 5) strengths.push('Diverse technical skill set');
       if (experienceYears > 2) strengths.push('Experienced professional');
@@ -143,15 +129,11 @@ Return ONLY the JSON object, no other text.`;
       console.log("Fallback analysis complete:", analysis);
     }
 
-    /* ================= PRACTICAL RESUME SCORE ================= */
-
     let score = 0;
     if (analysis.skills?.length > 0) score += 25;
     if (analysis.experienceYears > 0) score += 25;
     if (analysis.projects?.length > 0) score += 25;
     if (analysis.strengths?.length > 0) score += 25;
-
-    /* ================= SAVE RESUME ================= */
 
     const resume = await Resume.create({
       user: userId,
@@ -159,8 +141,6 @@ Return ONLY the JSON object, no other text.`;
       score,
       analysis,
     });
-
-    /* ================= UPDATE USER PROFILE ================= */
 
     await User.findByIdAndUpdate(userId, {
       skills: analysis.skills || [],

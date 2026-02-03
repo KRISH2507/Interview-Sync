@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 export const protect = (req, res, next) => {
   let token;
 
-  // Check Authorization header
+
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith("Bearer ")
@@ -13,7 +13,6 @@ export const protect = (req, res, next) => {
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // Attach user info to request
       req.user = {
         id: decoded.id,
       };

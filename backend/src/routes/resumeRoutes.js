@@ -5,18 +5,15 @@ import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-/* ================= MULTER CONFIG ================= */
-// Use memory storage since we extract text & send to AI
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
 
-/* ================= ROUTES ================= */
 router.post(
   "/upload",
-  protect,                 // ✅ JWT protection
-  upload.single("resume"), // ✅ file field name = "resume"
+  protect,
+  upload.single("resume"),
   uploadResume
 );
 

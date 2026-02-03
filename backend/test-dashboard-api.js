@@ -1,5 +1,4 @@
-// Quick test to call the dashboard API
-const token = 'YOUR_TOKEN_HERE'; // Replace with actual token from localStorage
+const token = 'YOUR_TOKEN_HERE';
 
 fetch('https://interview-sync-ldw4.onrender.com/api/dashboard', {
     headers: {

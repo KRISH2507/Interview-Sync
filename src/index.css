@@ -3,7 +3,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ===== ANIMATION TIMING VARIABLES ===== */
 :root {
   --animation-duration-fast: 0.2s;
   --animation-duration-normal: 0.3s;
@@ -12,28 +11,21 @@
   --radius: 0.875rem;
 }
 
-/* ===== MODERN COLORFUL STUDY THEME ===== */
 :root,
 .dark {
   --background: #0f1419;
-  /* Very dark blue-black */
   --foreground: #f5f7fa;
-  /* Clean white */
   --card: rgba(25, 35, 55, 0.9);
-  /* Deep blue-grey card */
   --card-foreground: #f5f7fa;
   --popover: rgba(15, 20, 30, 0.95);
   --popover-foreground: #f5f7fa;
   --primary: #00d4ff;
-  /* Vibrant cyan-blue */
   --primary-foreground: #ffffff;
   --secondary: rgba(0, 212, 255, 0.1);
-  /* Cyan tint */
   --secondary-foreground: #cffafe;
   --muted: rgba(100, 120, 150, 0.4);
   --muted-foreground: #cbd5e1;
   --accent: #ff6b5b;
-  /* Coral-orange - warm energy */
   --accent-foreground: #ffffff;
   --destructive: #ff4757;
   --destructive-foreground: #ffffff;
@@ -41,12 +33,10 @@
   --input: rgba(0, 212, 255, 0.1);
   --ring: #00d4ff;
 
-  /* Glassmorphism - Modern frosted glass */
   --glass-bg: rgba(20, 30, 50, 0.7);
   --glass-border: rgba(0, 212, 255, 0.25);
   --glass-blur: 12px;
 
-  /* Gradients - Vibrant and colorful */
   --gradient-primary: linear-gradient(135deg, #00d4ff 0%, #0099ff 100%);
   --gradient-primary-start: #00d4ff;
   --gradient-primary-end: #0099ff;
@@ -58,27 +48,20 @@
   --gradient-accent-end: #ff8c73;
 }
 
-/* ===== MODERN COLORFUL LIGHT THEME ===== */
 .light {
   --background: #ffffff;
-  /* Pure white */
   --foreground: #0f172a;
-  /* Very dark slate */
   --card: #f8fafc;
-  /* Off-white cards */
   --card-foreground: #0f172a;
   --popover: #ffffff;
   --popover-foreground: #0f172a;
   --primary: #0066cc;
-  /* Strong vibrant blue */
   --primary-foreground: #ffffff;
   --secondary: #e0f2fe;
-  /* Light sky blue */
   --secondary-foreground: #0369a1;
   --muted: #e2e8f0;
   --muted-foreground: #475569;
   --accent: #f97316;
-  /* Vibrant orange */
   --accent-foreground: #ffffff;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
@@ -86,12 +69,10 @@
   --input: #f1f5f9;
   --ring: #0066cc;
 
-  /* Glassmorphism - Clean and light */
   --glass-bg: rgba(248, 250, 252, 0.95);
   --glass-border: rgba(0, 102, 204, 0.2);
   --glass-blur: 10px;
 
-  /* Gradients - Vibrant and visible in light mode */
   --gradient-primary: linear-gradient(135deg, #0066cc 0%, #0099ff 100%);
   --gradient-primary-start: #0066cc;
   --gradient-primary-end: #0099ff;
@@ -103,7 +84,6 @@
   --gradient-accent-end: #fb923c;
 }
 
-/* ===== GLOBAL BASE STYLES ===== */
 * {
   @apply transition-colors duration-200;
 }
@@ -122,7 +102,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ===== SELECTION ===== */
 ::selection {
   background-color: var(--primary);
   background-color: color-mix(in srgb, var(--primary) 30%, transparent);
@@ -146,14 +125,12 @@ body {
   background-color: color-mix(in srgb, var(--primary) 60%, transparent);
 }
 
-/* ===== GLASS EFFECT ===== */
 .glass {
   background: var(--glass-bg) !important;
   backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--glass-border);
 }
 
-/* ===== GRADIENT TEXT ===== */
 .gradient-text {
   @apply bg-gradient-to-r from-cyan-400 via-teal-400 to-emerald-400 bg-clip-text text-transparent;
 }
@@ -162,12 +139,10 @@ body {
   @apply bg-gradient-to-r from-violet-400 to-rose-400 bg-clip-text text-transparent;
 }
 
-/* ===== SMOOTH SHADOW ===== */
 .shadow-smooth {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 10px 13px rgba(0, 0, 0, 0.05);
 }
 
-/* ===== FOCUS STATES ===== */
 .focus-ring {
   outline: none;
   ring: 2px;
@@ -176,7 +151,6 @@ body {
   ring-offset-color: var(--background);
 }
 
-/* ===== ANIMATIONS ===== */
 @keyframes shimmer {
   0% {
     background-position: -1000px 0;
@@ -195,7 +169,6 @@ body {
   }
 }
 
-/* ===== UTILITIES ===== */
 .backdrop-blur-soft {
   backdrop-filter: blur(2px);
 }
@@ -204,7 +177,6 @@ body {
   text-wrap: balance;
 }
 
-/* ===== REDUCED MOTION SUPPORT ===== */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

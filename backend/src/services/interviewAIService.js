@@ -1,9 +1,6 @@
 import openai from "../services/openai.js";
 import geminiClient from "../config/ai.js";
 
-/**
- * Safely extract JSON array from text
- */
 function extractJSONArray(text) {
   const start = text.indexOf("[");
   const end = text.lastIndexOf("]");
@@ -16,14 +13,10 @@ function extractJSONArray(text) {
   }
 }
 
-/**
- * Generate resume-specific questions using simple text analysis (NO AI REQUIRED)
- */
 function generateQuestionsFromResume(resumeText) {
   const textLower = resumeText.toLowerCase();
   const questions = [];
   
-  // Skill-based question bank
   const skillQuestions = {
     javascript: {
       question: "What is event delegation in JavaScript?",
@@ -147,14 +140,12 @@ function generateQuestionsFromResume(resumeText) {
     }
   };
   
-  // Match skills from resume and add relevant questions
   for (const [skill, question] of Object.entries(skillQuestions)) {
     if (textLower.includes(skill)) {
       questions.push(question);
     }
   }
   
-  // Add generic questions if not enough skill-specific questions
   const genericQuestions = [
     {
       question: "What is the CAP theorem in distributed systems?",
@@ -194,7 +185,6 @@ function generateQuestionsFromResume(resumeText) {
     }
   ];
   
-  // Ensure we have at least 5 questions
   while (questions.length < 5) {
     const randomQuestion = genericQuestions[Math.floor(Math.random() * genericQuestions.length)];
     if (!questions.includes(randomQuestion)) {
@@ -202,7 +192,6 @@ function generateQuestionsFromResume(resumeText) {
     }
   }
   
-  // Shuffle and return exactly 5 questions
   return questions
     .sort(() => Math.random() - 0.5)
     .slice(0, 5);
@@ -210,7 +199,6 @@ function generateQuestionsFromResume(resumeText) {
 
 export async function generateInterviewQuestions(resumeText) {
   try {
-    // 1️⃣ Try OpenAI first if API key is available and client is initialized
     if (openai && process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'YOUR_OPENAI_API_KEY_HERE') {
       try {
         console.log("🤖 Trying OpenAI for question generation...");
@@ -247,7 +235,6 @@ Return ONLY the JSON array, no other text.`
 
         let jsonText = response.choices[0].message.content.trim();
         
-        // Clean up markdown code blocks
         if (jsonText.includes('```json')) {
           jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
         } else if (jsonText.includes('```')) {
@@ -265,7 +252,6 @@ Return ONLY the JSON array, no other text.`
       }
     }
 
-    // 2️⃣ Try Gemini AI as fallback if available
     if (geminiClient) {
       try {
         console.log("🤖 Trying Gemini AI for question generation...");
@@ -290,7 +276,6 @@ Return ONLY the JSON array, no other text.`;
         const response = await geminiClient.generateContent(prompt);
         let jsonText = response.trim();
         
-        // Clean up markdown code blocks
         if (jsonText.includes('```json')) {
           jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
         } else if (jsonText.includes('```')) {
@@ -308,13 +293,11 @@ Return ONLY the JSON array, no other text.`;
       }
     }
     
-    // 3️⃣ Final Fallback: Generate questions from resume content (NO AI REQUIRED)
     console.log("📚 Using intelligent fallback - generating resume-specific questions");
     return generateQuestionsFromResume(resumeText);
     
   } catch (err) {
     console.error("Question generation error:", err.message);
-    // Final fallback
     return generateQuestionsFromResume(resumeText);
   }
 }

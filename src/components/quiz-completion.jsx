@@ -10,7 +10,6 @@ export function QuizCompletion(props) {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // Merge props from parent and navigation state
     const {
         score,
         totalQuestions,
@@ -32,12 +31,10 @@ export function QuizCompletion(props) {
                     animate="animate"
                 >
                     <GlassCard className="border-2 border-white/10 shadow-2xl overflow-hidden relative">
-                        {/* Background gradients */}
                         <div className="absolute -top-20 -left-20 w-40 h-40 bg-purple-500/20 blur-[60px] rounded-full" />
                         <div className="absolute -bottom-20 -right-20 w-40 h-40 bg-pink-500/20 blur-[60px] rounded-full" />
 
                         <div className="p-8 sm:p-12 text-center space-y-8 relative z-10">
-                            {/* Icon/Badge */}
                             <motion.div
                                 className="flex justify-center"
                                 initial={{ scale: 0, rotate: -180 }}
@@ -49,7 +46,6 @@ export function QuizCompletion(props) {
                                 </div>
                             </motion.div>
 
-                            {/* Message */}
                             <motion.div variants={fadeUp} initial="initial" animate="animate" transition={{ delay: 0.3 }}>
                                 <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">
                                     Quiz Completed!
@@ -59,7 +55,6 @@ export function QuizCompletion(props) {
                                 </p>
                             </motion.div>
 
-                            {/* Single Action Button */}
                             <motion.div
                                 className="flex justify-center pt-6"
                                 variants={fadeUp}

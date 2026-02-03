@@ -1,4 +1,3 @@
-/** @type {import('tailwindcss').Config} */
 export default {
   darkMode: 'class',
   content: [
@@ -8,7 +7,6 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Base theme colors (CSS variables)
         background: "var(--background)",
         foreground: "var(--foreground)",
         card: "var(--card)",
@@ -27,7 +25,6 @@ export default {
         input: "var(--input)",
         ring: "var(--ring)",
 
-        // Modern Colorful Study Palette
         cyan: {
           50: '#ecfbff',
           100: '#d1f5ff',

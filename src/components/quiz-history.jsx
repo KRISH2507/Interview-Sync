@@ -14,7 +14,6 @@ import DashboardLayout from './dashboard-layout';
 import { DashboardSkeleton } from "./loading/dashboard-skeleton";
 import { staggerContainer, staggerItem } from '../utils/animation-variants';
 
-/* Score Badge Component */
 function ScoreBadge({ score }) {
   const getVariant = (score) => {
     if (score >= 80) return 'success';
@@ -25,7 +24,6 @@ function ScoreBadge({ score }) {
   return <GradientBadge variant={getVariant(score)}>{score}%</GradientBadge>;
 }
 
-/* Quiz Icon Component */
 function QuizIcon({ score }) {
   if (score >= 80) {
     return (
@@ -80,13 +78,11 @@ export default function QuizHistory() {
 
   return (
     <DashboardLayout role="candidate">
-      {/* Floating Orbs Background */}
       <FloatingOrb color="royal" size="lg" className="top-0 right-0" />
       <FloatingOrb color="emerald" size="md" className="bottom-20 left-10" delay={2} />
       <FloatingOrb color="purple" size="sm" className="top-40 right-20" delay={4} />
 
       <div className="relative space-y-8">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -100,7 +96,6 @@ export default function QuizHistory() {
           </p>
         </motion.div>
 
-        {/* Stats Overview */}
         {interviewHistory.length > 0 && (
           <motion.div
             variants={staggerContainer}
@@ -147,7 +142,6 @@ export default function QuizHistory() {
           </motion.div>
         )}
 
-        {/* Timeline */}
         {interviewHistory.length > 0 ? (
           <Timeline>
             {interviewHistory.map((quiz, idx) => {
@@ -162,7 +156,6 @@ export default function QuizHistory() {
                   isLast={idx === interviewHistory.length - 1}
                 >
                   <GlassCard className={`overflow-hidden ${quiz.score >= 80 ? 'border-l-4 border-l-emerald-500 bg-gradient-to-r from-emerald-500/5 to-transparent' : ''}`}>
-                    {/* Header */}
                     <div
                       onClick={() => setExpandedQuiz(isExpanded ? null : quiz.id)}
                       className="cursor-pointer p-6 transition-all hover:bg-white/5"
@@ -213,8 +206,7 @@ export default function QuizHistory() {
                           </Button>
                         </div>
                       </div>
-                    </div>                    {/* Expanded Details */}
-                    <AnimatePresence>
+                    </div>                    <AnimatePresence>
                       {isExpanded && (
                         <motion.div
                           initial={{ height: 0, opacity: 0 }}
@@ -224,7 +216,6 @@ export default function QuizHistory() {
                           className="border-t border-white/10"
                         >
                           <div className="p-6 space-y-6">
-                            {/* Summary Stats */}
                             <div className="grid gap-4 sm:grid-cols-4">
                               <GlassCard className="p-4 text-center">
                                 <p className="text-sm text-muted-foreground mb-2">Score</p>
@@ -252,7 +243,6 @@ export default function QuizHistory() {
                               </GlassCard>
                             </div>
 
-                            {/* Questions Review */}
                             <div className="space-y-4">
                               <h4 className="text-lg font-semibold">
                                 <GradientText variant="royal">Questions Review</GradientText>

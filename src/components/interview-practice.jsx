@@ -49,12 +49,10 @@ export default function InterviewPractice() {
     loadInterview();
   }, []);
 
-  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (loading || !questions.length) return;
 
-      // Option selection (1-4)
       if (['1', '2', '3', '4'].includes(e.key)) {
         const index = parseInt(e.key) - 1;
         if (index < questions[current].options.length) {
@@ -64,18 +62,13 @@ export default function InterviewPractice() {
         }
       }
 
-      // Enter for next/submit
       if (e.key === 'Enter' && answers[current] !== null) {
         if (current < questions.length - 1) {
           setCurrent(curr => curr + 1);
         } else {
-          // Submit logic is complex/async, might be better to trigger click on button
-          // For now, let's keep it simple: only handle Next
-          // Use a ref if you want to trigger submit programmatically
         }
       }
 
-      // Navigation arrows
       if (e.key === 'ArrowRight' && answers[current] !== null && current < questions.length - 1) {
         setCurrent(curr => curr + 1);
       }
@@ -126,8 +119,6 @@ export default function InterviewPractice() {
     try {
       const res = await submitInterview(interviewId, answers);
 
-      // Navigate to completion page with results
-      // Ensure we have valid numbers to prevent NaN
       const totalQ = questions.length || 0;
       const serverScore = typeof res.data.score === 'number' ? res.data.score : 0;
       const correctCalculated = Math.round((serverScore / 100) * totalQ);
@@ -142,20 +133,17 @@ export default function InterviewPractice() {
       });
     } catch (err) {
       console.error("Submission failed", err);
-      // Fallback navigation
       navigate("/candidate/dashboard");
     }
   };
 
   return (
     <DashboardLayout role="candidate">
-      {/* Floating Orbs Background */}
       <FloatingOrb color="purple" size="lg" className="top-10 right-10" />
       <FloatingOrb color="royal" size="md" className="bottom-20 left-20" delay={2} />
 
       <div className="mx-auto max-w-4xl space-y-8 relative z-10">
 
-        {/* Header Section */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">
@@ -240,12 +228,10 @@ export default function InterviewPractice() {
                           </span>
                         </div>
 
-                        {/* Keyboard shortcut hint */}
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-mono px-2 py-1 rounded bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
                           {idx + 1}
                         </span>
 
-                        {/* Selected indicator glow */}
                         {isSelected && (
                           <motion.div
                             className="absolute inset-0 rounded-xl bg-gradient-to-r from-royal-500/10 to-purple-500/10 -z-10"

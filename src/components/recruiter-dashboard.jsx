@@ -16,7 +16,6 @@ export default function RecruiterDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCandidate, setSelectedCandidate] = useState(null);
 
-  // Mock data
   const candidates = [
     {
       id: 1,

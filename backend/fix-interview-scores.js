@@ -16,7 +16,6 @@ async function fixInterviewScores() {
         for (const interview of interviews) {
             const updates = {};
 
-            // Calculate overallScore if missing or incorrect
             if (interview.questions && interview.questions.length > 0) {
                 const totalScore = interview.questions.reduce((sum, q) => sum + (q.score || 0), 0);
                 const calculatedScore = Math.round((totalScore / (interview.questions.length * 10)) * 100);
@@ -26,13 +25,11 @@ async function fixInterviewScores() {
                     console.log(`Interview ${interview._id}: Setting overallScore to ${calculatedScore}%`);
                 }
 
-                // Set totalQuestions if missing
                 if (!interview.totalQuestions) {
                     updates.totalQuestions = interview.questions.length;
                 }
             }
 
-            // Update if needed
             if (Object.keys(updates).length > 0) {
                 await Interview.updateOne({ _id: interview._id }, { $set: updates });
                 updated++;
@@ -41,7 +38,6 @@ async function fixInterviewScores() {
 
         console.log(`✅ Updated ${updated} interviews`);
 
-        // Show summary
         const allInterviews = await Interview.find({});
         const completed = allInterviews.filter(i => i.status === 'completed');
         console.log(`\n📊 Summary:`);

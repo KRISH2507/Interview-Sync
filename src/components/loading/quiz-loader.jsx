@@ -18,7 +18,6 @@ export function QuizLoader() {
             {...fadeIn}
         >
             <div className="relative mb-6">
-                {/* Animated brain/thinking icon */}
                 <motion.div
                     className="h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center"
                     animate={{
@@ -46,7 +45,6 @@ export function QuizLoader() {
                     </svg>
                 </motion.div>
 
-                {/* Orbiting dots */}
                 {[0, 1, 2].map((i) => (
                     <motion.div
                         key={i}

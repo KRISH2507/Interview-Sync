@@ -15,7 +15,6 @@ export const connectDB = async () => {
     attempts += 1;
     try {
       const conn = await mongoose.connect(uri, {
-        // keep default options; mongoose will warn if additional options are needed
       });
       console.log("MongoDB Connected:", conn.connection.host);
       return conn;

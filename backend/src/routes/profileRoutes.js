@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.get("/", protect, getProfile);
 router.put("/", protect, updateProfile);
-router.get("/:userId", getProfile); // Keep for backward compatibility
-router.put("/:userId", updateProfile); // Keep for backward compatibility
+router.get("/:userId", getProfile);
+router.put("/:userId", updateProfile);
 
 export default router;

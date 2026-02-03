@@ -10,20 +10,17 @@ async function checkUserInterviews() {
         await mongoose.connect(process.env.MONGO_URI);
         console.log('✅ Connected to MongoDB');
 
-        const currentUserId = '696fa7812d80653152b60ec3'; // From the token
+        const currentUserId = '696fa7812d80653152b60ec3';
 
-        // Get all users
         const users = await User.find({});
         console.log(`\n👥 Found ${users.length} users:`);
         users.forEach(u => {
             console.log(`  - ${u._id}: ${u.name} (${u.email})`);
         });
 
-        // Get all interviews
         const allInterviews = await Interview.find({});
         console.log(`\n📊 Total interviews: ${allInterviews.length}`);
 
-        // Group interviews by user
         const interviewsByUser = {};
         allInterviews.forEach(interview => {
             const userId = interview.user.toString();
@@ -41,7 +38,6 @@ async function checkUserInterviews() {
             console.log(`  ${userId} (${userName}): ${interviews.length} total, ${completed} completed`);
         }
 
-        // Check current user
         console.log(`\n🔍 Current user (${currentUserId}):`);
         const currentUserInterviews = await Interview.find({ user: currentUserId });
         console.log(`  Total interviews: ${currentUserInterviews.length}`);

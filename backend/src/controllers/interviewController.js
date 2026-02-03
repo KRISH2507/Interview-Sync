@@ -4,8 +4,6 @@ import openai from "../services/openai.js";
 import { generateInterviewQuestions } from "../services/interviewAIService.js";
 import { normalizeQuestions } from "../utils/questionValidator.js";
 
-/* ================= FALLBACK QUESTIONS ================= */
-
 const FALLBACK_QUESTIONS = [
   {
     question: "How would you diagnose high latency in a Node.js API?",
@@ -69,11 +67,9 @@ const FALLBACK_QUESTIONS = [
   },
 ];
 
-/* ================= START INTERVIEW ================= */
-
 export const startInterview = async (req, res) => {
   try {
-    const userId = req.user.id; // ✅ JWT-based
+    const userId = req.user.id;
 
     console.log("Starting interview for user:", userId);
 
@@ -91,10 +87,8 @@ export const startInterview = async (req, res) => {
 
     console.log("Resume found, generating questions...");
 
-    // 1️⃣ Try AI first
     let questions = await generateInterviewQuestions(resume.rawText);
 
-    // 2️⃣ Validate AI output
     if (Array.isArray(questions) && questions.length >= 5) {
       console.log("✅ Using AI-generated questions");
     } else {
@@ -102,7 +96,6 @@ export const startInterview = async (req, res) => {
       questions = null;
     }
 
-    // 3️⃣ Fallback if AI fails
     if (!questions) {
       console.log("📚 Using preseeded fallback questions");
       questions = FALLBACK_QUESTIONS
@@ -112,12 +105,10 @@ export const startInterview = async (req, res) => {
 
     console.log(`Questions prepared: ${questions.length} questions`);
 
-    // 4️⃣ Normalize structure
     const normalized = normalizeQuestions(questions);
 
     console.log("Questions normalized, creating interview...");
 
-    // 5️⃣ Save interview
     const interview = await Interview.create({
       user: userId,
       resume: resume._id,
@@ -137,8 +128,6 @@ export const startInterview = async (req, res) => {
     res.status(500).json({ message: "Failed to start interview", error: err.message });
   }
 };
-
-/* ================= SUBMIT INTERVIEW ================= */
 
 export const submitInterview = async (req, res) => {
   try {
@@ -184,11 +173,8 @@ export const submitInterview = async (req, res) => {
   }
 };
 
-/* ================= RESUME ANALYSIS (AI) ================= */
-
 export const analyzeResumeWithAI = async (resumeText) => {
   try {
-    // Try OpenAI first if client is initialized
     if (openai && process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'YOUR_OPENAI_API_KEY_HERE') {
       try {
         console.log("🤖 Using OpenAI for resume analysis...");
@@ -213,7 +199,6 @@ export const analyzeResumeWithAI = async (resumeText) => {
       }
     }
     
-    // Fallback to basic analysis if OpenAI fails
     console.log("📚 Using fallback resume analysis");
     return generateBasicResumeAnalysis(resumeText);
   } catch (error) {
@@ -222,11 +207,9 @@ export const analyzeResumeWithAI = async (resumeText) => {
   }
 };
 
-// Fallback function for basic resume analysis without AI
 function generateBasicResumeAnalysis(resumeText) {
   const textLower = resumeText.toLowerCase();
   
-  // Extract common skills
   const skills = [];
   const skillKeywords = ['javascript', 'python', 'java', 'react', 'node', 'angular', 'vue', 
     'mongodb', 'sql', 'aws', 'azure', 'docker', 'kubernetes', 'git', 'api', 'rest'];
@@ -237,7 +220,6 @@ function generateBasicResumeAnalysis(resumeText) {
     }
   });
   
-  // Calculate approximate experience
   const yearMatches = resumeText.match(/(\d+)\s*(years?|yrs?)/gi) || [];
   const totalYears = yearMatches.reduce((sum, match) => {
     const num = parseInt(match.match(/\d+/)[0]);

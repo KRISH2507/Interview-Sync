@@ -3,13 +3,11 @@ import { Skeleton } from '../ui/skeleton';
 export function DashboardSkeleton() {
     return (
         <div className="space-y-6">
-            {/* Header skeleton */}
             <div className="space-y-2">
                 <Skeleton className="h-8 w-64" />
                 <Skeleton className="h-4 w-96" />
             </div>
 
-            {/* Stats grid skeleton */}
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 {[1, 2, 3, 4].map((i) => (
                     <div key={i} className="rounded-lg border border-border bg-card p-6 space-y-3">
@@ -21,7 +19,6 @@ export function DashboardSkeleton() {
                 ))}
             </div>
 
-            {/* Latest quiz skeleton */}
             <div className="rounded-lg border border-border bg-card p-6 space-y-4">
                 <div className="flex items-center justify-between">
                     <div className="space-y-2">
@@ -38,7 +35,6 @@ export function DashboardSkeleton() {
                 </div>
             </div>
 
-            {/* Quiz history skeleton */}
             <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
                     <div key={i} className="rounded-lg border border-border bg-card p-4 flex items-center justify-between">

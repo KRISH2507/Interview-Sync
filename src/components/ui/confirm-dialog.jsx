@@ -15,7 +15,6 @@ export function ConfirmDialog({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -24,7 +23,6 @@ export function ConfirmDialog({
             className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
           />
 
-          {/* Dialog */}
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -39,17 +37,14 @@ export function ConfirmDialog({
           >
             <div className="bg-card border border-border rounded-lg shadow-xl max-w-sm w-full">
               <div className="p-6">
-                {/* Title */}
                 <h2 className="text-lg font-semibold text-foreground mb-2">
                   {title}
                 </h2>
 
-                {/* Message */}
                 <p className="text-sm text-muted-foreground mb-6">
                   {message}
                 </p>
 
-                {/* Buttons */}
                 <div className="flex gap-3 justify-end">
                   <Button
                     variant="outline"

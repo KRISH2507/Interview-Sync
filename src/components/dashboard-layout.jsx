@@ -93,7 +93,6 @@ export default function DashboardLayout({ children, role }) {
 
   return (
     <div className="flex min-h-screen bg-background">
-      {/* Sidebar */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 w-64 glass border-r border-border transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
@@ -142,7 +141,6 @@ export default function DashboardLayout({ children, role }) {
         </div>
       </aside>
 
-      {/* Mobile overlay */}
       {isSidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden"
@@ -150,7 +148,6 @@ export default function DashboardLayout({ children, role }) {
         />
       )}
 
-      {/* Main content */}
       <div className="flex-1 lg:pl-64">
         <header className="sticky top-0 z-30 glass border-b border-border">
           <div className="flex h-16 items-center gap-4 px-4 sm:px-6">
@@ -170,7 +167,6 @@ export default function DashboardLayout({ children, role }) {
         <main className="p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
 
-      {/* Logout Confirmation Dialog */}
       <ConfirmDialog
         isOpen={showLogoutConfirm}
         title="Confirm Logout"

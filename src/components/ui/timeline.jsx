@@ -5,7 +5,6 @@ import { ScrollReveal } from '../animations/scroll-reveal';
 export function Timeline({ children, className }) {
     return (
         <div className={cn('relative space-y-8', className)}>
-            {/* Vertical line */}
             <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-royal-500/50 via-purple-500/50 to-transparent" />
             {children}
         </div>
@@ -35,7 +34,6 @@ export function TimelineItem({
 
     return (
         <ScrollReveal variant="fade" className="relative pl-16">
-            {/* Icon */}
             <motion.div
                 className={cn(
                     'absolute left-0 flex h-12 w-12 items-center justify-center rounded-full text-white',
@@ -47,12 +45,10 @@ export function TimelineItem({
                 {icon}
             </motion.div>
 
-            {/* Content */}
             <div className={cn('relative', className)}>
                 {children}
             </div>
 
-            {/* Connector dot */}
             {!isLast && (
                 <motion.div
                     className="absolute left-[22px] -bottom-4 h-2 w-2 rounded-full bg-royal-400"

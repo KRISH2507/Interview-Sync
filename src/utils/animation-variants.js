@@ -1,6 +1,3 @@
-// Centralized animation variant definitions for Framer Motion
-// Use these for consistent animations across the app
-
 export const fadeIn = {
     initial: { opacity: 0 },
     animate: { opacity: 1 },
@@ -43,7 +40,6 @@ export const scaleUp = {
     exit: { opacity: 0, scale: 0.8 },
 };
 
-// Stagger children animation
 export const staggerContainer = {
     animate: {
         transition: {
@@ -57,7 +53,6 @@ export const staggerItem = {
     animate: { opacity: 1, y: 0 },
 };
 
-// Transition presets
 export const smoothTransition = {
     type: 'spring',
     stiffness: 300,
@@ -75,7 +70,6 @@ export const quickTransition = {
     ease: 'easeOut',
 };
 
-// Page transition
 export const pageTransition = {
     initial: { opacity: 0, x: -20 },
     animate: { opacity: 1, x: 0 },

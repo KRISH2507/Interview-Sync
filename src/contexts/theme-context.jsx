@@ -7,7 +7,6 @@ const ThemeContext = createContext({
 
 export function ThemeProvider({ children }) {
     const [theme, setTheme] = useState(() => {
-        // Check localStorage first, then system preference
         const stored = localStorage.getItem('theme');
         if (stored) return stored;
 
@@ -20,13 +19,10 @@ export function ThemeProvider({ children }) {
     useEffect(() => {
         const root = document.documentElement;
 
-        // Remove both classes first
         root.classList.remove('light', 'dark');
 
-        // Add the current theme
         root.classList.add(theme);
 
-        // Save to localStorage
         localStorage.setItem('theme', theme);
     }, [theme]);
 

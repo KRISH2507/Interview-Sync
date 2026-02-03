@@ -3,15 +3,9 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
 
-// =========================
-// JWT HELPER
-// =========================
 const generateToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
-// =========================
-// EMAIL + PASSWORD REGISTER
-// =========================
 export const register = async (req, res) => {
   const { name, email, password, role } = req.body;
 
@@ -41,9 +35,6 @@ export const register = async (req, res) => {
   });
 };
 
-// =========================
-// EMAIL + PASSWORD LOGIN
-// =========================
 export const login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -68,17 +59,11 @@ export const login = async (req, res) => {
   });
 };
 
-// =========================
-// GET CURRENT USER
-// =========================
 export const getMe = async (req, res) => {
   const user = await User.findById(req.user.id).select("-password");
   res.json(user);
 };
 
-// =========================
-// GOOGLE SIGN-IN (NEW)
-// =========================
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export const googleLogin = async (req, res) => {
@@ -99,7 +84,7 @@ export const googleLogin = async (req, res) => {
         name,
         email,
         provider: "google",
-        role: "candidate", // Default role for Google sign-in
+        role: "candidate",
       });
     }
 

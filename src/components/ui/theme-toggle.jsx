@@ -22,7 +22,6 @@ export function ThemeToggle() {
                 transition={{ duration: 0.2 }}
                 className="absolute"
             >
-                {/* Moon icon */}
                 <svg
                     className="h-5 w-5 text-foreground"
                     fill="none"
@@ -48,7 +47,6 @@ export function ThemeToggle() {
                 transition={{ duration: 0.2 }}
                 className="absolute"
             >
-                {/* Sun icon */}
                 <svg
                     className="h-5 w-5 text-foreground"
                     fill="none"

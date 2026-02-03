@@ -2,7 +2,6 @@ import User from "../models/User.js";
 
 export const getProfile = async (req, res) => {
   try {
-    // Try JWT first, then URL param (for backward compatibility)
     const userId = req.user?.id || req.params.userId;
     if (!userId) return res.status(400).json({ message: "userId required" });
 
@@ -18,7 +17,6 @@ export const getProfile = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    // Try JWT first, then URL param (for backward compatibility)
     const userId = req.user?.id || req.params.userId;
     if (!userId) return res.status(400).json({ message: "userId required" });
 
