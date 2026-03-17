@@ -11,6 +11,16 @@ import { ThemeToggle } from "./ui/theme-toggle";
 
 const GSI_INIT_FLAG = "__INTERVIEWSYNC_GSI_INITIALIZED__";
 
+function normalizeUserRole(role) {
+  const normalized = String(role || "candidate").trim().toLowerCase();
+  return normalized === "recruiter" ? "recruiter" : "candidate";
+}
+
+function getRedirectRouteByRole(role) {
+  const normalizedRole = normalizeUserRole(role);
+  return normalizedRole === "recruiter" ? "/admin/dashboard" : "/candidate/dashboard";
+}
+
 export default function AuthPage() {
   const navigate = useNavigate();
   const { theme } = useTheme();
@@ -120,11 +130,11 @@ export default function AuthPage() {
         email: pendingUserData?.email,
         otp,
       });
+      const normalizedRole = normalizeUserRole(res.data.user?.role);
       localStorage.setItem("token", res.data.token);
       if (res.data.user?.id) localStorage.setItem("userId", res.data.user.id);
-      if (res.data.user?.role) localStorage.setItem("userRole", res.data.user.role);
-      const redirectRoute =
-        res.data.user?.role === "recruiter" ? "/admin/dashboard" : "/candidate/dashboard";
+      localStorage.setItem("userRole", normalizedRole);
+      const redirectRoute = getRedirectRouteByRole(normalizedRole);
       navigate(redirectRoute);
     } catch (err) {
       setOtpError(err.response?.data?.message || "Registration failed. Please try again.");
@@ -201,14 +211,9 @@ export default function AuthPage() {
       if (res.data.user?.id) {
         localStorage.setItem("userId", res.data.user.id);
       }
-      if (res.data.user?.role) {
-        localStorage.setItem("userRole", res.data.user.role);
-      }
-
-      const redirectRoute =
-        res.data.user?.role === "recruiter"
-          ? "/recruiter/dashboard"
-          : "/candidate/dashboard";
+      const normalizedRole = normalizeUserRole(res.data.user?.role);
+      localStorage.setItem("userRole", normalizedRole);
+      const redirectRoute = getRedirectRouteByRole(normalizedRole);
 
       setTimeout(() => {
         navigate(redirectRoute);
@@ -247,11 +252,11 @@ export default function AuthPage() {
           email: formData.email,
           password: formData.password,
         });
+        const normalizedRole = normalizeUserRole(res.data.user?.role);
         localStorage.setItem("token", res.data.token);
         if (res.data.user?.id) localStorage.setItem("userId", res.data.user.id);
-        if (res.data.user?.role) localStorage.setItem("userRole", res.data.user.role);
-        const redirectRoute =
-          res.data.user?.role === "recruiter" ? "/admin/dashboard" : "/candidate/dashboard";
+        localStorage.setItem("userRole", normalizedRole);
+        const redirectRoute = getRedirectRouteByRole(normalizedRole);
         navigate(redirectRoute);
       }
     } catch (err) {

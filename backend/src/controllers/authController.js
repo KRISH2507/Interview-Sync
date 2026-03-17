@@ -22,6 +22,10 @@ const TOKEN_BLACKLIST_PREFIX = "auth:blacklist";
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
+const normalizeUserRole = (role) => {
+  const normalized = String(role || "candidate").trim().toLowerCase();
+  return normalized === "recruiter" ? "recruiter" : "candidate";
+};
 
 const buildOtpKey = (email) => `${OTP_KEY_PREFIX}:${email}`;
 const buildOtpAttemptKey = (email) => `${OTP_ATTEMPT_PREFIX}:${email}`;
@@ -38,8 +42,9 @@ const getTokenLifetimeSeconds = (decodedToken) => {
 };
 
 const issueToken = (id, role = "candidate") => {
+  const safeRole = normalizeUserRole(role);
   const jti = crypto.randomUUID();
-  const token = jwt.sign({ id, role, jti }, process.env.JWT_SECRET, {
+  const token = jwt.sign({ id, role: safeRole, jti }, process.env.JWT_SECRET, {
     expiresIn: "7d",
   });
 
@@ -63,7 +68,9 @@ const persistActiveSession = async (jti, user) => {
 };
 
 const sendAuthResponse = async (res, user, statusCode = 200) => {
-  const { token, jti } = issueToken(user._id, user.role);
+  const safeRole = normalizeUserRole(user.role);
+  user.role = safeRole;
+  const { token, jti } = issueToken(user._id, safeRole);
   await persistActiveSession(jti, user);
 
   return res.status(statusCode).json({
