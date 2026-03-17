@@ -11,7 +11,7 @@ import { sendOtpEmail } from "../services/emailService.js";
 const TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
 const OTP_TTL_SECONDS = 10 * 60;
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
-const OTP_MAX_ATTEMPTS = 5;
+const OTP_MAX_ATTEMPTS = 10;
 
 const OTP_KEY_PREFIX = "auth:otp:register";
 const OTP_ATTEMPT_PREFIX = "auth:otp:attempts";
@@ -187,11 +187,23 @@ export const sendRegistrationOtp = async (req, res) => {
         email: normalizedEmail,
         error: error.response?.data || error.message || String(error),
       });
+
       await redis.del(buildOtpKey(normalizedEmail));
       await redis.del(cooldownKey);
-      return res.status(500).json({
-        message: "Failed to send OTP email",
+
+      const rawErrorMessage = String(error?.message || "");
+      const isEmailJsSecurityBlock =
+        rawErrorMessage.includes("API access from non-browser environments") ||
+        rawErrorMessage.includes("non-browser environments is currently disabled");
+
+      return res.status(502).json({
+        message: isEmailJsSecurityBlock
+          ? "EmailJS is blocking server API access. Enable it in EmailJS dashboard > Account > Security."
+          : "Failed to send OTP email",
         error: error.response?.data || error.message,
+        hint: isEmailJsSecurityBlock
+          ? "Enable 'API access from non-browser environments' and allow both localhost and deployed frontend origins in EmailJS security settings."
+          : undefined,
       });
     }
 

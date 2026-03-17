@@ -16,15 +16,15 @@ const normalizeEmail = (value) => String(value || "").trim().toLowerCase();
 
 const otpIpLimiter = createRedisRateLimiter({
   prefix: "auth-send-otp-ip",
-  windowSeconds: 15 * 60,
-  maxRequests: 10,
+  windowSeconds: 60,
+  maxRequests: 100,
   message: "Too many OTP requests from this IP. Please try again later.",
 });
 
 const otpEmailLimiter = createRedisRateLimiter({
   prefix: "auth-send-otp-email",
-  windowSeconds: 10 * 60,
-  maxRequests: 3,
+  windowSeconds: 60,
+  maxRequests: 100,
   keyBuilder: (req) => normalizeEmail(req.body?.email),
   message: "Too many OTP requests for this email. Please try again later.",
 });

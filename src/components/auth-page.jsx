@@ -242,6 +242,7 @@ export default function AuthPage() {
           password: formData.password,
           role,
         });
+
         setPendingUserData({ ...formData, role });
         setOtpSentMessage(response.data?.message || `OTP sent to ${formData.email}. Check your inbox.`);
         setOtpStep(true);
@@ -262,6 +263,7 @@ export default function AuthPage() {
     } catch (err) {
       console.error("[Auth] Error:", err);
       const message =
+        err?.response?.data?.error ||
         err?.response?.data?.message ||
         err?.message ||
         "Something went wrong. Please try again.";
