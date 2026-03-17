@@ -33,7 +33,7 @@ export function ScrollReveal({
     variant = 'fadeUp',
     delay = 0,
     duration = 0.6,
-    once = true,
+    once = false,
     className = ''
 }) {
     const [ref, isVisible] = useScrollReveal({ once });

@@ -14,22 +14,26 @@ export function CircularProgress({
     const circumference = radius * 2 * Math.PI;
     const offset = circumference - (value / 100) * circumference;
 
-    const variants = {
-        primary: 'stroke-blue-500 dark:stroke-cyan-400',
-        accent: 'stroke-violet-500 dark:stroke-violet-400',
-        success: 'stroke-green-500 dark:stroke-teal-400',
-        emerald: 'stroke-emerald-500 dark:stroke-emerald-400',
-        gold: 'stroke-amber-500 dark:stroke-amber-400',
-        royal: 'stroke-indigo-600 dark:stroke-indigo-400',
+    const ringColors = {
+        primary: '#4F46E5',
+        accent: '#7C3AED',
+        success: '#22C55E',
+        emerald: '#22C55E',
+        gold: '#F59E0B',
+        danger: '#EF4444',
+        royal: '#4F46E5',
     };
 
+    const ringColor = ringColors[variant] || '#4F46E5';
+
     const glowVariants = {
-        primary: 'drop-shadow-[0_0_10px_rgba(59,130,246,0.6)] dark:drop-shadow-[0_0_10px_rgba(6,182,212,0.6)]',
-        accent: 'drop-shadow-[0_0_10px_rgba(168,85,247,0.6)]',
-        success: 'drop-shadow-[0_0_10px_rgba(34,197,94,0.6)] dark:drop-shadow-[0_0_10px_rgba(13,148,136,0.6)]',
-        emerald: 'drop-shadow-[0_0_10px_rgba(16,185,129,0.6)]',
-        gold: 'drop-shadow-[0_0_10px_rgba(217,119,6,0.6)] dark:drop-shadow-[0_0_10px_rgba(217,119,6,0.6)]',
-        royal: 'drop-shadow-[0_0_10px_rgba(79,70,229,0.6)]',
+        primary: 'opacity-95',
+        accent: 'opacity-95',
+        success: 'opacity-95',
+        emerald: 'opacity-95',
+        gold: 'opacity-95',
+        danger: 'opacity-95',
+        royal: 'opacity-95',
     };
 
     return (
@@ -42,7 +46,7 @@ export function CircularProgress({
                     stroke="currentColor"
                     strokeWidth={strokeWidth}
                     fill="none"
-                    className="text-gray-300 dark:text-slate-600/20"
+                    className="text-slate-200 dark:text-slate-600/30"
                 />
 
                 <motion.circle
@@ -53,21 +57,22 @@ export function CircularProgress({
                     strokeWidth={strokeWidth}
                     fill="none"
                     strokeLinecap="round"
-                    className={cn(variants[variant], glowVariants[variant])}
+                    className={cn(glowVariants[variant])}
                     initial={{ strokeDashoffset: circumference }}
                     animate={{ strokeDashoffset: offset }}
                     transition={{ duration: 1, ease: 'easeOut' }}
                     style={{
                         strokeDasharray: circumference,
+                        color: ringColor,
                     }}
                 />
             </svg>
 
 
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none">
                 {showValue && (
                     <motion.span
-                        className="text-2xl font-bold text-slate-950 dark:text-white"
+                        className="text-[28px] font-bold leading-none text-slate-900 [text-shadow:0_1px_0_rgba(15,23,42,0.55),0_0_2px_rgba(15,23,42,0.35)] [-webkit-text-stroke:0.6px_rgba(15,23,42,0.45)] dark:text-white dark:[text-shadow:0_1px_0_rgba(0,0,0,0.85),0_0_2px_rgba(0,0,0,0.75)] dark:[-webkit-text-stroke:0.6px_rgba(0,0,0,0.85)]"
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.2 }}
@@ -76,7 +81,7 @@ export function CircularProgress({
                     </motion.span>
                 )}
                 {label && (
-                    <span className="text-xs text-slate-600 dark:text-slate-400 mt-1 font-medium">{label}</span>
+                    <span className="mt-1 text-xs font-medium text-slate-600 dark:text-slate-300">{label}</span>
                 )}
             </div>
         </div>

@@ -1,0 +1,122 @@
+[
+  {
+    "question": "What data format does MongoDB use to store documents internally?",
+    "options": ["XML", "BSON (Binary JSON)", "CSV", "Plain text"],
+    "correctAnswer": 1,
+    "topic": "mongodb",
+    "category": "mern",
+    "difficulty": "easy"
+  },
+  {
+    "question": "In React, which hook is used to perform side effects like data fetching?",
+    "options": ["useState", "useEffect", "useContext", "useReducer"],
+    "correctAnswer": 1,
+    "topic": "react",
+    "category": "mern",
+    "difficulty": "easy"
+  },
+  {
+    "question": "What does the virtual DOM in React primarily help with?",
+    "options": ["Direct DOM manipulation", "Efficient UI updates by batching and diffing changes", "Server-side rendering only", "CSS animation management"],
+    "correctAnswer": 1,
+    "topic": "react",
+    "category": "mern",
+    "difficulty": "easy"
+  },
+  {
+    "question": "In Node.js, what is the Event Loop responsible for?",
+    "options": ["Compiling JavaScript code", "Handling asynchronous I/O without blocking the main thread", "Managing database connections directly", "Rendering HTML templates"],
+    "correctAnswer": 1,
+    "topic": "nodejs",
+    "category": "mern",
+    "difficulty": "medium"
+  },
+  {
+    "question": "Which Express.js method handles all HTTP methods for a given route path?",
+    "options": ["app.get()", "app.post()", "app.all()", "app.route()"],
+    "correctAnswer": 2,
+    "topic": "express",
+    "category": "mern",
+    "difficulty": "medium"
+  },
+  {
+    "question": "What does useState() return in React?",
+    "options": ["Only the current state value", "Only the setter function", "An array with [currentState, setterFunction]", "A Promise resolving to the state"],
+    "correctAnswer": 2,
+    "topic": "react",
+    "category": "mern",
+    "difficulty": "easy"
+  },
+  {
+    "question": "What is the primary purpose of middleware in Express.js?",
+    "options": ["A database abstraction layer", "Functions that execute during the request-response cycle", "A front-end rendering engine", "A test automation framework"],
+    "correctAnswer": 1,
+    "topic": "express",
+    "category": "mern",
+    "difficulty": "easy"
+  },
+  {
+    "question": "In MongoDB, which method returns a cursor to all documents matching a query?",
+    "options": ["findOne()", "find()", "findAll()", "query()"],
+    "correctAnswer": 1,
+    "topic": "mongodb",
+    "category": "mern",
+    "difficulty": "easy"
+  },
+  {
+    "question": "In React, what is the purpose of the key prop when rendering lists?",
+    "options": ["To apply CSS styles to items", "To help React uniquely identify items for efficient reconciliation", "To pass data from parent to child", "To manually trigger a re-render"],
+    "correctAnswer": 1,
+    "topic": "react",
+    "category": "mern",
+    "difficulty": "easy"
+  },
+  {
+    "question": "What is JWT primarily used for in MERN stack applications?",
+    "options": ["Storing encrypted passwords in the database", "Stateless authentication and authorization", "Caching API responses", "Handling file uploads"],
+    "correctAnswer": 1,
+    "topic": "express",
+    "category": "mern",
+    "difficulty": "easy"
+  },
+  {
+    "question": "In React, what does the useContext hook do?",
+    "options": ["Creates a new context object", "Provides a context value to a subtree", "Consumes a context value inside a component", "Resets context to its default value"],
+    "correctAnswer": 2,
+    "topic": "react",
+    "category": "mern",
+    "difficulty": "medium"
+  },
+  {
+    "question": "Which Node.js built-in module is used to create HTTP servers natively?",
+    "options": ["fs", "path", "http", "os"],
+    "correctAnswer": 2,
+    "topic": "nodejs",
+    "category": "mern",
+    "difficulty": "easy"
+  },
+  {
+    "question": "In MongoDB, what is a replica set?",
+    "options": ["A duplicate copy of a single document", "A group of MongoDB instances that maintain the same data for high availability", "A backup configuration file", "A type of collection index"],
+    "correctAnswer": 1,
+    "topic": "mongodb",
+    "category": "mern",
+    "difficulty": "medium"
+  },
+  {
+    "question": "What does npm stand for in the Node.js ecosystem?",
+    "options": ["Node Package Manager", "Node Project Manager", "New Package Method", "Node Protocol Module"],
+    "correctAnswer": 0,
+    "topic": "nodejs",
+    "category": "mern",
+    "difficulty": "easy"
+  },
+  {
+    "question": "In Mongoose, what is a Schema?",
+    "options": ["A database backup file", "A definition of the document structure and data types for a collection", "A query result object", "A type of database index"],
+    "correctAnswer": 1,
+    "topic": "mongodb",
+    "category": "mern",
+    "difficulty": "easy"
+  }
+]

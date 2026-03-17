@@ -3,8 +3,9 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { Button } from "./ui/button";
 import { ThemeToggle } from "./ui/theme-toggle";
-import { GradientText } from "./ui/gradient-text";
 import { ConfirmDialog } from "./ui/confirm-dialog";
+import { useTheme } from "../contexts/theme-context";
+import { logoutUser } from "../services/api";
 
 export default function DashboardLayout({ children, role }) {
   const location = useLocation();
@@ -13,15 +14,32 @@ export default function DashboardLayout({ children, role }) {
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
+  const shellBg = isDark ? "#0F172A" : "#F8FAFC";
+  const sidebarBg = isDark ? "#111827" : "#FFFFFF";
+  const headerBg = isDark ? "rgba(15,23,42,0.92)" : "rgba(255,255,255,0.9)";
+  const borderColor = isDark ? "#334155" : "#E2E8F0";
+  const brandText = isDark ? "#F1F5F9" : "#0F172A";
+  const inactiveText = isDark ? "#CBD5E1" : "#475569";
+  const activeBg = isDark ? "rgba(79,70,229,0.2)" : "#EEF2FF";
+  const activeText = "#4F46E5";
 
   const handleLogoutClick = () => {
     setShowLogoutConfirm(true);
   };
 
-  const handleLogoutConfirm = () => {
+  const handleLogoutConfirm = async () => {
     setShowLogoutConfirm(false);
+    try {
+      await logoutUser();
+    } catch (error) {
+      console.error("Logout request failed:", error);
+    }
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
+    localStorage.removeItem("userRole");
     navigate("/");
   };
 
@@ -31,16 +49,17 @@ export default function DashboardLayout({ children, role }) {
 
   const candidateNavItems = [
     { href: "/candidate/dashboard", label: "Dashboard", icon: "home" },
+    { href: "/candidate/video-interview", label: "Video Interview", icon: "video" },
     { href: "/upload", label: "Upload Resume", icon: "upload" },
     { href: "/profile", label: "Profile", icon: "user" },
     { href: "/practice", label: "Practice", icon: "practice" },
+    { href: "/practice/code", label: "Code Practice", icon: "code" },
     { href: "/history", label: "History", icon: "history" },
   ];
 
   const recruiterNavItems = [
-    { href: "/recruiter/dashboard", label: "Dashboard", icon: "home" },
-    { href: "/candidates", label: "Candidates", icon: "users" },
-    { href: "/interviews", label: "Interviews", icon: "calendar" },
+    { href: "/admin/dashboard", label: "Admin Dashboard", icon: "home" },
+    { href: "/recruiter/interviews", label: "Interviews", icon: "calendar" },
   ];
 
   const navItems = role === "candidate" ? candidateNavItems : recruiterNavItems;
@@ -87,22 +106,33 @@ export default function DashboardLayout({ children, role }) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       ),
+      code: (
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 18l6-6-6-6M8 6l-6 6 6 6" />
+        </svg>
+      ),
+      video: (
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14m-9 4h8a2 2 0 002-2V8a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+      ),
     };
     return icons[iconName];
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen" style={{ backgroundColor: shellBg }}>
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 glass border-r border-border transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        className={`fixed inset-y-0 left-0 z-50 w-64 border-r transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
+        style={{ backgroundColor: sidebarBg, borderColor }}
       >
-        <div className="flex h-16 items-center gap-2 border-b border-border px-6">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 font-bold text-white shadow-md">
+        <div className="flex h-16 items-center gap-2 border-b px-6" style={{ borderColor }}>
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 font-bold text-white shadow-sm">
             IS
           </div>
-          <span className="text-lg font-bold text-foreground">
-            Interview<span className="text-blue-600">Sync</span>
+          <span className="text-lg font-bold" style={{ color: brandText }}>
+            Interview<span style={{ color: "#4F46E5" }}>Sync</span>
           </span>
         </div>
 
@@ -111,10 +141,15 @@ export default function DashboardLayout({ children, role }) {
             <Link
               key={item.href}
               to={item.href}
-              className={`flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${pathname === item.href
-                ? "bg-blue-600 text-white shadow-md"
-                : "text-muted-foreground hover:bg-blue-50 dark:hover:bg-primary/10 hover:text-blue-600 dark:hover:text-primary"
+              className={`flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm transition-all duration-200 ${pathname === item.href
+                ? "font-semibold"
+                : isDark ? "font-medium hover:bg-slate-800" : "font-medium hover:bg-slate-100 hover:text-slate-900"
                 }`}
+              style={
+                pathname === item.href
+                  ? { backgroundColor: activeBg, color: activeText }
+                  : { color: inactiveText }
+              }
             >
               {getIcon(item.icon)}
               <span>{item.label}</span>
@@ -123,11 +158,6 @@ export default function DashboardLayout({ children, role }) {
         </nav>
 
         <div className="absolute bottom-4 left-4 right-4 space-y-2">
-          <Link to="/" className="block">
-            <Button variant="outline" className="w-full text-sm">
-              ← Back Home
-            </Button>
-          </Link>
           <Button
             onClick={handleLogoutClick}
             variant="ghost"
@@ -149,15 +179,18 @@ export default function DashboardLayout({ children, role }) {
       )}
 
       <div className="flex-1 lg:pl-64">
-        <header className="sticky top-0 z-30 glass border-b border-border">
+        <header
+          className="sticky top-0 z-30 border-b backdrop-blur-md"
+          style={{ backgroundColor: headerBg, borderColor }}
+        >
           <div className="flex h-16 items-center gap-4 px-4 sm:px-6">
             <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
               ☰
             </Button>
 
             <div className="flex flex-1 items-center justify-between">
-              <div className="text-sm font-medium text-foreground">
-                Welcome, <span className="text-blue-600 font-semibold">{role === "candidate" ? "Candidate" : "Recruiter"}</span>
+              <div className="text-sm font-medium" style={{ color: inactiveText }}>
+                Welcome, <span className="font-semibold" style={{ color: "#4F46E5" }}>{role === "candidate" ? "Candidate" : "Recruiter"}</span>
               </div>
               <ThemeToggle />
             </div>

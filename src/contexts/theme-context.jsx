@@ -1,9 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
-const ThemeContext = createContext({
-    theme: 'dark',
-    toggleTheme: () => { },
-});
+const ThemeContext = createContext(undefined);
 
 export function ThemeProvider({ children }) {
     const [theme, setTheme] = useState(() => {
@@ -18,10 +15,16 @@ export function ThemeProvider({ children }) {
 
     useEffect(() => {
         const root = document.documentElement;
+        const body = document.body;
 
         root.classList.remove('light', 'dark');
+        body.classList.remove('light', 'dark');
 
         root.classList.add(theme);
+        body.classList.add(theme);
+
+        root.setAttribute('data-theme', theme);
+        body.setAttribute('data-theme', theme);
 
         localStorage.setItem('theme', theme);
     }, [theme]);
@@ -31,7 +34,7 @@ export function ThemeProvider({ children }) {
     };
 
     return (
-        <ThemeContext.Provider value={{ theme, toggleTheme }}>
+        <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
             {children}
         </ThemeContext.Provider>
     );

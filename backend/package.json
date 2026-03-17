@@ -29,7 +29,9 @@
     "multer": "^2.0.2",
     "openai": "^6.16.0",
     "pdf-parse": "^2.4.5",
-    "pdfjs-dist": "^5.4.530"
+    "pdfjs-dist": "^5.4.530",
+    "redis": "^5.11.0",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"

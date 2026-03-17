@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import { invalidateDashboardCache } from "../utils/cache.js";
 
 export const getProfile = async (req, res) => {
   try {
@@ -25,6 +26,8 @@ export const updateProfile = async (req, res) => {
       select: "-password",
     });
     if (!updated) return res.status(404).json({ message: "User not found" });
+
+    await invalidateDashboardCache(userId);
 
     res.json(updated);
   } catch (err) {

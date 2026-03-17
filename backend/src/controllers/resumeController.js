@@ -2,6 +2,7 @@ import Resume from "../models/Resume.js";
 import User from "../models/User.js";
 import geminiClient from "../config/ai.js";
 import mammoth from "mammoth";
+import { invalidateDashboardCache } from "../utils/cache.js";
 
 export const uploadResume = async (req, res) => {
   try {
@@ -145,6 +146,8 @@ Return ONLY the JSON object, no other text.`;
     await User.findByIdAndUpdate(userId, {
       skills: analysis.skills || [],
     });
+
+    await invalidateDashboardCache(userId);
 
     res.status(201).json({
       message: "Resume uploaded and analyzed successfully",
