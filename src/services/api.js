@@ -7,6 +7,10 @@ const API_BASE_URL =
 
 const normalizeBaseUrl = (url) => String(url || "").replace(/\/$/, "");
 
+export const getApiBaseUrl = () => normalizeBaseUrl(API_BASE_URL);
+export const getBackendBaseUrl = () => getApiBaseUrl().replace(/\/api\/?$/, "");
+export const getGoogleOAuthStartUrl = () => `${getApiBaseUrl()}/auth/google`;
+
 const isValidRole = (role) => ["candidate", "recruiter"].includes(String(role || "").toLowerCase());
 
 const isValidEmail = (email) => {
@@ -45,7 +49,7 @@ const validateSendOtpPayload = (payload = {}) => {
 };
 
 const api = axios.create({
-  baseURL: normalizeBaseUrl(API_BASE_URL),
+  baseURL: getApiBaseUrl(),
   headers: {
     Accept: "application/json",
     "Content-Type": "application/json",

@@ -62,7 +62,8 @@ Create/update frontend env in .env at repo root:
 
 ```env
 VITE_API_BASE_URL=http://localhost:5000/api
-VITE_GOOGLE_CLIENT_ID=your_google_client_id
+# If you deploy with Next.js, use NEXT_PUBLIC_API_URL instead
+NEXT_PUBLIC_API_URL=http://localhost:5000/api
 ```
 
 Create/update backend env in [backend/.env](backend/.env):
@@ -74,10 +75,17 @@ JWT_SECRET=your_jwt_secret
 
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_REDIRECT_URI=http://localhost:5000/api/auth/google/callback
+
+# Deployed frontend URLs (comma-separated allowlist)
+FRONTEND_URLS=http://localhost:5173,https://your-frontend.vercel.app
+# Optional single frontend origin (also allowlisted)
+FRONTEND_URL=https://your-frontend.vercel.app
 
 EMAILJS_SERVICE_ID=your_emailjs_service_id
 EMAILJS_TEMPLATE_ID=your_emailjs_template_id
 EMAILJS_PUBLIC_KEY=your_emailjs_public_key
+EMAILJS_PRIVATE_KEY=your_emailjs_private_key
 
 REDIS_URL=redis://default:password@host:port
 REDIS_DASHBOARD_CACHE_TTL=300
@@ -107,6 +115,33 @@ Backend: http://localhost:5000
 - POST /api/auth/register → verify OTP and create user
 - POST /api/auth/login → login with email/password
 - POST /api/auth/logout → revoke current token in Redis blacklist
+
+## Google OAuth (Vercel + Render)
+
+This project now uses backend redirect OAuth flow:
+
+- `GET /api/auth/google` → starts Google OAuth redirect
+- `GET /api/auth/google/callback` → backend exchanges code, creates/loads user, then redirects to frontend `/auth`
+
+Frontend receives query params on `/auth`:
+
+- Success: `token`, `userId`, `role`
+- Failure: `google_error`
+
+### Google Cloud Console setup
+
+For your Web OAuth client:
+
+- Authorized JavaScript origins:
+	- `https://your-frontend.vercel.app`
+	- `http://localhost:5173`
+- Authorized redirect URIs:
+	- `https://your-backend.onrender.com/api/auth/google/callback`
+	- `http://localhost:5000/api/auth/google/callback`
+
+### Cross-Origin-Opener-Policy note
+
+Using full-page redirect OAuth (instead of popup token flow) avoids COOP popup warnings in production browsers.
 
 ## Deployment
 

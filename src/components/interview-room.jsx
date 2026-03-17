@@ -83,7 +83,7 @@ function decodeTokenUserId() {
 }
 
 function getSocketBaseUrl() {
-  const envBase = import.meta.env.VITE_API_BASE_URL || "";
+  const envBase = import.meta.env.VITE_API_BASE_URL || import.meta.env.NEXT_PUBLIC_API_URL || "";
   if (envBase) return envBase.replace(/\/api\/?$/, "");
   return window.location.origin;
 }

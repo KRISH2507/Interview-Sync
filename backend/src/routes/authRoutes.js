@@ -6,6 +6,8 @@ import {
   logout,
   getMe,
   googleLogin,
+  startGoogleOAuth,
+  googleOAuthCallback,
 } from "../controllers/authController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { createRedisRateLimiter } from "../middleware/rateLimitMiddleware.js";
@@ -62,6 +64,8 @@ const verifyEmailLimiter = createRedisRateLimiter({
 router.post("/send-otp", otpIpLimiter, otpEmailLimiter, sendRegistrationOtp);
 router.post("/register", verifyIpLimiter, verifyEmailLimiter, register);
 router.post("/login", loginIpLimiter, loginEmailLimiter, login);
+router.get("/google", startGoogleOAuth);
+router.get("/google/callback", googleOAuthCallback);
 router.post("/google", googleLogin);
 router.post("/logout", protect, logout);
 router.get("/me", protect, getMe);

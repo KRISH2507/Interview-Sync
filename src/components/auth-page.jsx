@@ -2,14 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
-import api, { sendRegistrationOtp, verifyRegistrationOtp } from "../services/api";
+import api, { getGoogleOAuthStartUrl, sendRegistrationOtp, verifyRegistrationOtp } from "../services/api";
 import { useTheme } from "../contexts/theme-context";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { ThemeToggle } from "./ui/theme-toggle";
-
-const GSI_INIT_FLAG = "__INTERVIEWSYNC_GSI_INITIALIZED__";
 
 function normalizeUserRole(role) {
   const normalized = String(role || "candidate").trim().toLowerCase();
@@ -36,7 +34,6 @@ export default function AuthPage() {
   const [formError, setFormError] = useState("");
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState("");
-  const googleInitializedRef = useRef(false);
 
   // OTP state
   const [otpStep, setOtpStep] = useState(false);
@@ -57,58 +54,32 @@ export default function AuthPage() {
   const textSecondary = isDark ? "#CBD5E1" : "#475569";
 
   useEffect(() => {
-    const initGoogleSignIn = async () => {
-      try {
-        if (!isLogin) return;
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    const roleFromQuery = params.get("role");
+    const userIdFromQuery = params.get("userId");
+    const googleErrorFromQuery = params.get("google_error");
 
-        let attempts = 0;
-        while (!window.google && attempts < 20) {
-          await new Promise((resolve) => setTimeout(resolve, 250));
-          attempts++;
-        }
+    if (googleErrorFromQuery) {
+      setGoogleError(googleErrorFromQuery);
+      window.history.replaceState({}, "", window.location.pathname);
+      return;
+    }
 
-        if (!window.google) {
-          console.error("Google Sign-in library failed to load");
-          setGoogleError("Google Sign-in temporarily unavailable");
-          return;
-        }
+    if (!token) {
+      return;
+    }
 
-        if (!import.meta.env.VITE_GOOGLE_CLIENT_ID) {
-          console.error("Google Client ID not configured");
-          setGoogleError("Google Sign-in not configured");
-          return;
-        }
+    const normalizedRole = normalizeUserRole(roleFromQuery);
+    localStorage.setItem("token", token);
+    localStorage.setItem("userRole", normalizedRole);
+    if (userIdFromQuery) {
+      localStorage.setItem("userId", userIdFromQuery);
+    }
 
-        if (!googleInitializedRef.current && !window[GSI_INIT_FLAG]) {
-          google.accounts.id.initialize({
-            client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-            callback: handleGoogleLogin,
-          });
-          googleInitializedRef.current = true;
-          window[GSI_INIT_FLAG] = true;
-        }
-
-        const googleBtnElement = document.getElementById("google-btn");
-        if (googleBtnElement) {
-          googleBtnElement.innerHTML = "";
-          const buttonWidth = Math.max(220, Math.floor(googleBtnElement.offsetWidth || 320));
-
-          google.accounts.id.renderButton(googleBtnElement, {
-            theme: "outline",
-            size: "large",
-            width: buttonWidth,
-            shape: "pill",
-            text: "signin_with",
-          });
-        }
-      } catch (error) {
-        console.error("Google Sign-in initialization error:", error);
-        setGoogleError("Google Sign-in is not available");
-      }
-    };
-
-    initGoogleSignIn();
-  }, [isLogin]);
+    window.history.replaceState({}, "", window.location.pathname);
+    navigate(getRedirectRouteByRole(normalizedRole), { replace: true });
+  }, [navigate]);
 
   // ── OTP helpers ──────────────────────────────────────────────────────────────
   const startResendCooldown = (seconds = 60) => {
@@ -186,47 +157,12 @@ export default function AuthPage() {
   };
   // ─────────────────────────────────────────────────────────────────────────────
 
-  const handleGoogleLogin = async (response) => {
+  const handleGoogleLogin = () => {
     if (googleLoading) return;
-
-    if (!response || !response.credential) {
-      console.error("Invalid Google response");
-      setGoogleError("Failed to get Google credentials");
-      return;
-    }
 
     setGoogleLoading(true);
     setGoogleError("");
-
-    try {
-      const res = await api.post("/auth/google", {
-        credential: response.credential,
-      });
-
-      if (!res.data || !res.data.token) {
-        throw new Error("Invalid response from server");
-      }
-
-      localStorage.setItem("token", res.data.token);
-      if (res.data.user?.id) {
-        localStorage.setItem("userId", res.data.user.id);
-      }
-      const normalizedRole = normalizeUserRole(res.data.user?.role);
-      localStorage.setItem("userRole", normalizedRole);
-      const redirectRoute = getRedirectRouteByRole(normalizedRole);
-
-      setTimeout(() => {
-        navigate(redirectRoute);
-      }, 100);
-    } catch (err) {
-      console.error("Google login failed:", err);
-      const errorMessage =
-        err.response?.data?.message ||
-        err.message ||
-        "Google Sign-in failed. Please try again.";
-      setGoogleError(errorMessage);
-      setGoogleLoading(false);
-    }
+    window.location.assign(getGoogleOAuthStartUrl());
   };
 
   const handleSubmit = async (e) => {
@@ -349,9 +285,15 @@ export default function AuthPage() {
                     </div>
                   )}
                   {!googleLoading && (
-                    <>
-                      <div id="google-btn" className="w-full min-h-[40px]" />
-                    </>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-11 w-full rounded-full border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                      onClick={handleGoogleLogin}
+                    >
+                      <span className="mr-2">🔐</span>
+                      Continue with Google
+                    </Button>
                   )}
                 </div>
 

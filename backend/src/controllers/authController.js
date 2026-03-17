@@ -1,5 +1,6 @@
 import crypto from "crypto";
 
+import axios from "axios";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
@@ -19,7 +20,14 @@ const OTP_COOLDOWN_PREFIX = "auth:otp:cooldown";
 const SESSION_PREFIX = "auth:session";
 const TOKEN_BLACKLIST_PREFIX = "auth:blacklist";
 
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const GOOGLE_OAUTH_SCOPES = ["openid", "email", "profile"];
+
+const googleTokenClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const googleOauthClient = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URI
+);
 
 const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
 const normalizeUserRole = (role) => {
@@ -32,6 +40,56 @@ const buildOtpAttemptKey = (email) => `${OTP_ATTEMPT_PREFIX}:${email}`;
 const buildOtpCooldownKey = (email) => `${OTP_COOLDOWN_PREFIX}:${email}`;
 const buildSessionKey = (jti) => `${SESSION_PREFIX}:${jti}`;
 const buildTokenBlacklistKey = (jti) => `${TOKEN_BLACKLIST_PREFIX}:${jti}`;
+
+const getConfiguredFrontendOrigins = () => {
+  const fromList = String(process.env.FRONTEND_URLS || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  const singleOrigin = String(process.env.FRONTEND_URL || "").trim();
+  if (singleOrigin) {
+    fromList.push(singleOrigin);
+  }
+
+  return [...new Set(fromList)];
+};
+
+const resolveFrontendOrigin = (req, preferredOrigin) => {
+  const configuredOrigins = getConfiguredFrontendOrigins();
+  const normalizedPreferred = String(preferredOrigin || "").trim();
+  const requestOrigin = String(req.headers.origin || "").trim();
+
+  if (normalizedPreferred && configuredOrigins.includes(normalizedPreferred)) {
+    return normalizedPreferred;
+  }
+
+  if (requestOrigin && configuredOrigins.includes(requestOrigin)) {
+    return requestOrigin;
+  }
+
+  if (configuredOrigins.length > 0) {
+    return configuredOrigins[0];
+  }
+
+  return requestOrigin;
+};
+
+const buildFrontendAuthRedirect = (req, queryParams = {}, preferredOrigin) => {
+  const frontendOrigin = resolveFrontendOrigin(req, preferredOrigin);
+  if (!frontendOrigin) {
+    return "";
+  }
+
+  const redirectUrl = new URL("/auth", frontendOrigin);
+  Object.entries(queryParams).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && String(value) !== "") {
+      redirectUrl.searchParams.set(key, String(value));
+    }
+  });
+
+  return redirectUrl.toString();
+};
 
 const getTokenLifetimeSeconds = (decodedToken) => {
   if (!decodedToken?.exp) {
@@ -352,7 +410,7 @@ export const googleLogin = async (req, res) => {
   const { credential } = req.body;
 
   try {
-    const ticket = await googleClient.verifyIdToken({
+    const ticket = await googleTokenClient.verifyIdToken({
       idToken: credential,
       audience: process.env.GOOGLE_CLIENT_ID,
     });
@@ -375,5 +433,128 @@ export const googleLogin = async (req, res) => {
   } catch (error) {
     console.error("Google login error:", error);
     return res.status(401).json({ message: "Google authentication failed" });
+  }
+};
+
+export const startGoogleOAuth = async (req, res) => {
+  try {
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET || !process.env.GOOGLE_REDIRECT_URI) {
+      return res.status(500).json({ message: "Google OAuth server configuration is incomplete" });
+    }
+
+    const frontendOrigin = resolveFrontendOrigin(req);
+    const statePayload = Buffer.from(JSON.stringify({ frontendOrigin }), "utf8").toString("base64url");
+
+    const authUrl = googleOauthClient.generateAuthUrl({
+      access_type: "offline",
+      prompt: "consent",
+      scope: GOOGLE_OAUTH_SCOPES,
+      state: statePayload,
+    });
+
+    return res.redirect(authUrl);
+  } catch (error) {
+    console.error("Google OAuth start error:", error);
+    return res.status(500).json({ message: "Failed to start Google OAuth" });
+  }
+};
+
+export const googleOAuthCallback = async (req, res) => {
+  const getStateFrontendOrigin = () => {
+    try {
+      const rawState = String(req.query.state || "");
+      if (!rawState) {
+        return "";
+      }
+
+      const parsed = JSON.parse(Buffer.from(rawState, "base64url").toString("utf8"));
+      return String(parsed?.frontendOrigin || "").trim();
+    } catch {
+      return "";
+    }
+  };
+
+  const redirectWithError = (message) => {
+    const redirectUrl = buildFrontendAuthRedirect(
+      req,
+      { google_error: message || "Google authentication failed" },
+      getStateFrontendOrigin()
+    );
+
+    if (redirectUrl) {
+      return res.redirect(redirectUrl);
+    }
+
+    return res.status(401).json({ message: message || "Google authentication failed" });
+  };
+
+  try {
+    const code = String(req.query.code || "").trim();
+    if (!code) {
+      return redirectWithError("Google callback did not return code");
+    }
+
+    const { tokens } = await googleOauthClient.getToken(code);
+    if (!tokens?.access_token) {
+      return redirectWithError("Google OAuth token exchange failed");
+    }
+
+    const profileResponse = await axios.get("https://www.googleapis.com/oauth2/v2/userinfo", {
+      headers: {
+        Authorization: `Bearer ${tokens.access_token}`,
+      },
+      timeout: 10000,
+    });
+
+    const profile = profileResponse?.data || {};
+    const normalizedEmail = normalizeEmail(profile.email);
+    if (!normalizedEmail) {
+      return redirectWithError("Google account email not available");
+    }
+
+    const userName = String(profile.name || normalizedEmail.split("@")[0] || "Google User").trim();
+
+    let user = await User.findOne({ email: normalizedEmail });
+    if (!user) {
+      user = await User.create({
+        name: userName,
+        email: normalizedEmail,
+        provider: "google",
+        role: "candidate",
+      });
+    }
+
+    const safeRole = normalizeUserRole(user.role);
+    user.role = safeRole;
+
+    const { token, jti } = issueToken(user._id, safeRole);
+    await persistActiveSession(jti, user);
+
+    const successRedirectUrl = buildFrontendAuthRedirect(
+      req,
+      {
+        token,
+        userId: user._id,
+        role: safeRole,
+      },
+      getStateFrontendOrigin()
+    );
+
+    if (successRedirectUrl) {
+      return res.redirect(successRedirectUrl);
+    }
+
+    return res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: safeRole,
+      },
+    });
+  } catch (error) {
+    console.error("Google OAuth callback error:", error);
+    return redirectWithError("Google authentication failed");
   }
 };

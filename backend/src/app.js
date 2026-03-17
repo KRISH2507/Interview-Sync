@@ -11,10 +11,13 @@ import codeRoutes from "./routes/codeRoutes.js";
 
 const app = express();
 
-const configuredOrigins = (process.env.FRONTEND_URLS || "")
-	.split(",")
-	.map((origin) => origin.trim())
-	.filter(Boolean);
+const configuredOrigins = [
+	...String(process.env.FRONTEND_URLS || "")
+		.split(",")
+		.map((origin) => origin.trim())
+		.filter(Boolean),
+	String(process.env.FRONTEND_URL || "").trim(),
+].filter(Boolean);
 
 app.use(
 	cors({
