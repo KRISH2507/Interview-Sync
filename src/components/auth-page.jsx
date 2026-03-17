@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
-import api, { getGoogleOAuthStartUrl, sendRegistrationOtp, verifyRegistrationOtp } from "../services/api";
+import api, { sendRegistrationOtp, verifyRegistrationOtp } from "../services/api";
 import { useTheme } from "../contexts/theme-context";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -162,7 +162,15 @@ export default function AuthPage() {
 
     setGoogleLoading(true);
     setGoogleError("");
-    window.location.assign(getGoogleOAuthStartUrl());
+
+    if (!import.meta.env.VITE_API_BASE_URL && !import.meta.env.NEXT_PUBLIC_API_URL) {
+      setGoogleLoading(false);
+      setGoogleError("API base URL is not configured.");
+      return;
+    }
+
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.NEXT_PUBLIC_API_URL;
+    window.location.href = `${apiBaseUrl}/auth/google?frontend_origin=${window.location.origin}`;
   };
 
   const handleSubmit = async (e) => {

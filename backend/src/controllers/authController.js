@@ -20,7 +20,7 @@ const OTP_COOLDOWN_PREFIX = "auth:otp:cooldown";
 const SESSION_PREFIX = "auth:session";
 const TOKEN_BLACKLIST_PREFIX = "auth:blacklist";
 
-const GOOGLE_OAUTH_SCOPES = ["openid", "email", "profile"];
+const GOOGLE_OAUTH_SCOPES = ["email", "profile"];
 
 const googleTokenClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -496,17 +496,22 @@ export const googleLogin = async (req, res) => {
 
 export const startGoogleOAuth = async (req, res) => {
   try {
-    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET || !process.env.GOOGLE_REDIRECT_URI) {
       return res.status(500).json({ message: "Google OAuth server configuration is incomplete" });
     }
 
     const preferredFrontendOrigin = String(req.query.frontend_origin || "").trim();
-    const frontendOrigin = resolveFrontendOrigin(req, preferredFrontendOrigin);
-    const redirectUri = resolveGoogleRedirectUri(req);
+    const frontendOrigin = preferredFrontendOrigin || String(process.env.FRONTEND_URL || "").trim();
+    const redirectUri = String(process.env.GOOGLE_REDIRECT_URI || "").trim();
 
-    if (!redirectUri) {
-      return res.status(500).json({ message: "Unable to resolve Google callback URI" });
-    }
+    console.log("[auth/google] start route hit", {
+      preferredFrontendOrigin,
+      resolvedFrontendOrigin: frontendOrigin,
+      requestOrigin: req.headers.origin,
+      requestHost: req.get("host"),
+    });
+
+    console.log("[auth/google] redirect URI", { redirectUri });
 
     const oauthClient = new OAuth2Client(
       process.env.GOOGLE_CLIENT_ID,
@@ -551,11 +556,11 @@ export const googleOAuthCallback = async (req, res) => {
   const statePayload = getStatePayload();
 
   const redirectWithError = (message) => {
-    const redirectUrl = buildFrontendAuthRedirect(
-      req,
-      { google_error: message || "Google authentication failed" },
-      statePayload.frontendOrigin
-    );
+    const fallbackFrontendUrl = String(process.env.FRONTEND_URL || "").trim();
+    const frontendOrigin = statePayload.frontendOrigin || fallbackFrontendUrl;
+    const redirectUrl = frontendOrigin
+      ? `${frontendOrigin.replace(/\/$/, "")}/auth?google_error=${encodeURIComponent(message || "Google authentication failed")}`
+      : "";
 
     if (redirectUrl) {
       return res.redirect(redirectUrl);
@@ -570,10 +575,16 @@ export const googleOAuthCallback = async (req, res) => {
       return redirectWithError("Google callback did not return code");
     }
 
-    const redirectUri = resolveGoogleRedirectUri(req, statePayload.redirectUri);
+    const redirectUri = String(process.env.GOOGLE_REDIRECT_URI || statePayload.redirectUri || "").trim();
     if (!redirectUri) {
       return redirectWithError("Unable to resolve Google callback URI");
     }
+
+    console.log("[auth/google/callback] callback hit", {
+      hasCode: Boolean(code),
+      redirectUri,
+      resolvedFrontendOrigin: statePayload.frontendOrigin,
+    });
 
     const oauthClient = new OAuth2Client(
       process.env.GOOGLE_CLIENT_ID,
@@ -620,15 +631,11 @@ export const googleOAuthCallback = async (req, res) => {
     const { token, jti } = issueToken(user._id, safeRole);
     await persistActiveSession(jti, user);
 
-    const successRedirectUrl = buildFrontendAuthRedirect(
-      req,
-      {
-        token,
-        userId: user._id,
-        role: safeRole,
-      },
-      statePayload.frontendOrigin
-    );
+    const fallbackFrontendUrl = String(process.env.FRONTEND_URL || "").trim();
+    const frontendOrigin = statePayload.frontendOrigin || fallbackFrontendUrl;
+    const successRedirectUrl = frontendOrigin
+      ? `${frontendOrigin.replace(/\/$/, "")}/auth?token=${encodeURIComponent(token)}&userId=${encodeURIComponent(String(user._id))}&role=${encodeURIComponent(safeRole)}`
+      : "";
 
     if (successRedirectUrl) {
       return res.redirect(successRedirectUrl);

@@ -44,6 +44,10 @@ app.use(
 );
 app.use(express.json());
 
+app.get("/ping", (_req, res) => {
+	res.json({ ok: true, service: "interviewsync-backend" });
+});
+
 app.use("/api/resume", resumeRoutes);
 app.use("/api/interview", interviewRoutes);
 app.use("/api/dashboard", dashboardRoutes);

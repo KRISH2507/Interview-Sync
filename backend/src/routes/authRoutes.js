@@ -5,7 +5,6 @@ import {
   login,
   logout,
   getMe,
-  googleLogin,
   startGoogleOAuth,
   googleOAuthCallback,
 } from "../controllers/authController.js";
@@ -66,7 +65,6 @@ router.post("/register", verifyIpLimiter, verifyEmailLimiter, register);
 router.post("/login", loginIpLimiter, loginEmailLimiter, login);
 router.get("/google", startGoogleOAuth);
 router.get("/google/callback", googleOAuthCallback);
-router.get("/google", googleLogin);
 router.post("/logout", protect, logout);
 router.get("/me", protect, getMe);
 
