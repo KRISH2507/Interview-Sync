@@ -97,8 +97,13 @@ const validateRegistrationPayload = ({ name, email, password }) => {
     return "Name is required";
   }
 
-  if (!email || !String(email).trim()) {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) {
     return "Email is required";
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    return "A valid email is required";
   }
 
   if (!password || String(password).length < 6) {
@@ -111,8 +116,23 @@ const validateRegistrationPayload = ({ name, email, password }) => {
 export const sendRegistrationOtp = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
+    const requestId = crypto.randomUUID();
+    const requestIp = req.headers["x-forwarded-for"] || req.ip || "unknown";
+    const normalizedRole = normalizeUserRole(role);
+
+    console.log("[auth/send-otp] request", {
+      requestId,
+      email: normalizeEmail(email),
+      role: normalizedRole,
+      ip: requestIp,
+    });
+
     const validationMessage = validateRegistrationPayload({ name, email, password });
     if (validationMessage) {
+      console.warn("[auth/send-otp] validation failed", {
+        requestId,
+        message: validationMessage,
+      });
       return res.status(400).json({ message: validationMessage });
     }
 
@@ -146,7 +166,7 @@ export const sendRegistrationOtp = async (req, res) => {
       name: String(name).trim(),
       email: normalizedEmail,
       passwordHash,
-      role: role === "recruiter" ? "recruiter" : "candidate",
+      role: normalizedRole,
       otp,
     };
 
@@ -162,14 +182,23 @@ export const sendRegistrationOtp = async (req, res) => {
         otp,
       });
     } catch (error) {
-      console.error("OTP email send failed:", error.response?.data || error.message || error);
+      console.error("[auth/send-otp] email send failed", {
+        requestId,
+        email: normalizedEmail,
+        error: error.response?.data || error.message || String(error),
+      });
       await redis.del(buildOtpKey(normalizedEmail));
       await redis.del(cooldownKey);
-      return res.status(502).json({
+      return res.status(500).json({
         message: "Failed to send OTP email",
         error: error.response?.data || error.message,
       });
     }
+
+    console.log("[auth/send-otp] OTP sent", {
+      requestId,
+      email: normalizedEmail,
+    });
 
     return res.json({
       message: "OTP sent successfully",
@@ -177,7 +206,10 @@ export const sendRegistrationOtp = async (req, res) => {
       resendAfter: OTP_RESEND_COOLDOWN_SECONDS,
     });
   } catch (error) {
-    console.error("sendRegistrationOtp error:", error);
+    console.error("[auth/send-otp] unexpected error", {
+      error: error?.message || String(error),
+      stack: error?.stack,
+    });
     return res.status(500).json({ message: "Failed to send OTP" });
   }
 };

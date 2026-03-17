@@ -2,10 +2,54 @@ import axios from "axios";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.NEXT_PUBLIC_API_URL ||
   "https://interview-sync-ldw4.onrender.com/api";
 
+const normalizeBaseUrl = (url) => String(url || "").replace(/\/$/, "");
+
+const isValidRole = (role) => ["candidate", "recruiter"].includes(String(role || "").toLowerCase());
+
+const isValidEmail = (email) => {
+  const normalized = String(email || "").trim();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
+};
+
+const validateSendOtpPayload = (payload = {}) => {
+  const name = String(payload.name || "").trim();
+  const email = String(payload.email || "").trim();
+  const password = String(payload.password || "");
+  const role = String(payload.role || "candidate").toLowerCase();
+
+  if (!name) {
+    throw new Error("Name is required");
+  }
+
+  if (!isValidEmail(email)) {
+    throw new Error("Please enter a valid email address");
+  }
+
+  if (password.length < 6) {
+    throw new Error("Password must be at least 6 characters");
+  }
+
+  if (!isValidRole(role)) {
+    throw new Error("Role must be candidate or recruiter");
+  }
+
+  return {
+    name,
+    email,
+    password,
+    role,
+  };
+};
+
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: normalizeBaseUrl(API_BASE_URL),
+  headers: {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  },
 });
 
 api.interceptors.request.use((config) => {
@@ -15,6 +59,22 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+    const message = error?.response?.data?.message || error?.message || "Request failed";
+    console.error("[API] Request failed", {
+      url: error?.config?.url,
+      method: error?.config?.method,
+      status,
+      message,
+      data: error?.response?.data,
+    });
+    return Promise.reject(error);
+  }
+);
 
 export const uploadResume = (formData) =>
   api.post("/resume/upload", formData, {
@@ -93,7 +153,7 @@ export const updateProfile = (data) =>
   api.put("/profile", data);
 
 export const sendRegistrationOtp = (payload) =>
-  api.post("/auth/send-otp", payload);
+  api.post("/auth/send-otp", validateSendOtpPayload(payload));
 
 export const verifyRegistrationOtp = ({ email, otp }) =>
   api.post("/auth/register", { email, otp });
