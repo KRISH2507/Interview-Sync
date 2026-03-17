@@ -37,6 +37,16 @@ io.on("connection", (socket) => {
 });
 
 connectDB().then(() => {
+  httpServer.on("error", (error) => {
+    if (error?.code === "EADDRINUSE") {
+      console.error(`Port ${PORT} is already in use. Stop the existing process and restart.`);
+      process.exit(1);
+    }
+
+    console.error("Server startup error:", error);
+    process.exit(1);
+  });
+
   httpServer.listen(PORT, () =>
     console.log(`Server running on port ${PORT}`)
   );

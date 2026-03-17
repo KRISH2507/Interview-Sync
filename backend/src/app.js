@@ -10,6 +10,7 @@ import practiceRoutes from "./routes/practiceRoutes.js";
 import codeRoutes from "./routes/codeRoutes.js";
 
 const app = express();
+app.set("trust proxy", 1);
 
 const configuredOrigins = [
 	...String(process.env.FRONTEND_URLS || "")

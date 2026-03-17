@@ -9,7 +9,13 @@ const normalizeBaseUrl = (url) => String(url || "").replace(/\/$/, "");
 
 export const getApiBaseUrl = () => normalizeBaseUrl(API_BASE_URL);
 export const getBackendBaseUrl = () => getApiBaseUrl().replace(/\/api\/?$/, "");
-export const getGoogleOAuthStartUrl = () => `${getApiBaseUrl()}/auth/google`;
+export const getGoogleOAuthStartUrl = () => {
+  const startUrl = new URL(`${getApiBaseUrl()}/auth/google`);
+  if (typeof window !== "undefined" && window.location?.origin) {
+    startUrl.searchParams.set("frontend_origin", window.location.origin);
+  }
+  return startUrl.toString();
+};
 
 const isValidRole = (role) => ["candidate", "recruiter"].includes(String(role || "").toLowerCase());
 

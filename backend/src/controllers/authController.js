@@ -23,11 +23,6 @@ const TOKEN_BLACKLIST_PREFIX = "auth:blacklist";
 const GOOGLE_OAUTH_SCOPES = ["openid", "email", "profile"];
 
 const googleTokenClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-const googleOauthClient = new OAuth2Client(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_REDIRECT_URI
-);
 
 const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
 const normalizeUserRole = (role) => {
@@ -40,6 +35,34 @@ const buildOtpAttemptKey = (email) => `${OTP_ATTEMPT_PREFIX}:${email}`;
 const buildOtpCooldownKey = (email) => `${OTP_COOLDOWN_PREFIX}:${email}`;
 const buildSessionKey = (jti) => `${SESSION_PREFIX}:${jti}`;
 const buildTokenBlacklistKey = (jti) => `${TOKEN_BLACKLIST_PREFIX}:${jti}`;
+
+const parseOrigin = (value) => {
+  try {
+    return new URL(String(value || "").trim()).origin;
+  } catch {
+    return "";
+  }
+};
+
+const getRequestProtocol = (req) =>
+  String(req.headers["x-forwarded-proto"] || req.protocol || "http")
+    .split(",")[0]
+    .trim()
+    .replace(/:$/, "");
+
+const getRequestHost = (req) =>
+  String(req.headers["x-forwarded-host"] || req.get("host") || "")
+    .split(",")[0]
+    .trim();
+
+const getRequestOrigin = (req) => {
+  const host = getRequestHost(req);
+  if (!host) {
+    return "";
+  }
+
+  return `${getRequestProtocol(req)}://${host}`;
+};
 
 const getConfiguredFrontendOrigins = () => {
   const fromList = String(process.env.FRONTEND_URLS || "")
@@ -59,20 +82,55 @@ const resolveFrontendOrigin = (req, preferredOrigin) => {
   const configuredOrigins = getConfiguredFrontendOrigins();
   const normalizedPreferred = String(preferredOrigin || "").trim();
   const requestOrigin = String(req.headers.origin || "").trim();
+  const refererOrigin = parseOrigin(req.headers.referer);
+  const accepts = (origin) => {
+    if (!origin) {
+      return false;
+    }
 
-  if (normalizedPreferred && configuredOrigins.includes(normalizedPreferred)) {
+    if (configuredOrigins.length === 0) {
+      return true;
+    }
+
+    return configuredOrigins.includes(origin);
+  };
+
+  if (accepts(normalizedPreferred)) {
     return normalizedPreferred;
   }
 
-  if (requestOrigin && configuredOrigins.includes(requestOrigin)) {
+  if (accepts(requestOrigin)) {
     return requestOrigin;
+  }
+
+  if (accepts(refererOrigin)) {
+    return refererOrigin;
   }
 
   if (configuredOrigins.length > 0) {
     return configuredOrigins[0];
   }
 
-  return requestOrigin;
+  return normalizedPreferred || requestOrigin || refererOrigin;
+};
+
+const resolveGoogleRedirectUri = (req, preferredRedirectUri) => {
+  const fromEnv = String(process.env.GOOGLE_REDIRECT_URI || "").trim();
+  if (fromEnv) {
+    return fromEnv;
+  }
+
+  const normalizedPreferred = String(preferredRedirectUri || "").trim();
+  if (normalizedPreferred) {
+    return normalizedPreferred;
+  }
+
+  const requestOrigin = getRequestOrigin(req);
+  if (!requestOrigin) {
+    return "";
+  }
+
+  return `${requestOrigin}/api/auth/google/callback`;
 };
 
 const buildFrontendAuthRedirect = (req, queryParams = {}, preferredOrigin) => {
@@ -438,14 +496,27 @@ export const googleLogin = async (req, res) => {
 
 export const startGoogleOAuth = async (req, res) => {
   try {
-    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET || !process.env.GOOGLE_REDIRECT_URI) {
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
       return res.status(500).json({ message: "Google OAuth server configuration is incomplete" });
     }
 
-    const frontendOrigin = resolveFrontendOrigin(req);
-    const statePayload = Buffer.from(JSON.stringify({ frontendOrigin }), "utf8").toString("base64url");
+    const preferredFrontendOrigin = String(req.query.frontend_origin || "").trim();
+    const frontendOrigin = resolveFrontendOrigin(req, preferredFrontendOrigin);
+    const redirectUri = resolveGoogleRedirectUri(req);
 
-    const authUrl = googleOauthClient.generateAuthUrl({
+    if (!redirectUri) {
+      return res.status(500).json({ message: "Unable to resolve Google callback URI" });
+    }
+
+    const oauthClient = new OAuth2Client(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      redirectUri
+    );
+
+    const statePayload = Buffer.from(JSON.stringify({ frontendOrigin, redirectUri }), "utf8").toString("base64url");
+
+    const authUrl = oauthClient.generateAuthUrl({
       access_type: "offline",
       prompt: "consent",
       scope: GOOGLE_OAUTH_SCOPES,
@@ -460,25 +531,30 @@ export const startGoogleOAuth = async (req, res) => {
 };
 
 export const googleOAuthCallback = async (req, res) => {
-  const getStateFrontendOrigin = () => {
+  const getStatePayload = () => {
     try {
       const rawState = String(req.query.state || "");
       if (!rawState) {
-        return "";
+        return { frontendOrigin: "", redirectUri: "" };
       }
 
       const parsed = JSON.parse(Buffer.from(rawState, "base64url").toString("utf8"));
-      return String(parsed?.frontendOrigin || "").trim();
+      return {
+        frontendOrigin: String(parsed?.frontendOrigin || "").trim(),
+        redirectUri: String(parsed?.redirectUri || "").trim(),
+      };
     } catch {
-      return "";
+      return { frontendOrigin: "", redirectUri: "" };
     }
   };
+
+  const statePayload = getStatePayload();
 
   const redirectWithError = (message) => {
     const redirectUrl = buildFrontendAuthRedirect(
       req,
       { google_error: message || "Google authentication failed" },
-      getStateFrontendOrigin()
+      statePayload.frontendOrigin
     );
 
     if (redirectUrl) {
@@ -494,7 +570,21 @@ export const googleOAuthCallback = async (req, res) => {
       return redirectWithError("Google callback did not return code");
     }
 
-    const { tokens } = await googleOauthClient.getToken(code);
+    const redirectUri = resolveGoogleRedirectUri(req, statePayload.redirectUri);
+    if (!redirectUri) {
+      return redirectWithError("Unable to resolve Google callback URI");
+    }
+
+    const oauthClient = new OAuth2Client(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      redirectUri
+    );
+
+    const { tokens } = await oauthClient.getToken({
+      code,
+      redirect_uri: redirectUri,
+    });
     if (!tokens?.access_token) {
       return redirectWithError("Google OAuth token exchange failed");
     }
@@ -537,7 +627,7 @@ export const googleOAuthCallback = async (req, res) => {
         userId: user._id,
         role: safeRole,
       },
-      getStateFrontendOrigin()
+      statePayload.frontendOrigin
     );
 
     if (successRedirectUrl) {
