@@ -1,0 +1,162 @@
+[
+  {
+    "question": "What is the time complexity of accessing an element in an array by index?",
+    "options": ["O(n)", "O(1)", "O(log n)", "O(n²)"],
+    "correctAnswer": 1,
+    "topic": "arrays",
+    "category": "dsa",
+    "difficulty": "easy"
+  },
+  {
+    "question": "Which data structure follows LIFO (Last In First Out) order?",
+    "options": ["Queue", "Stack", "Heap", "Linked List"],
+    "correctAnswer": 1,
+    "topic": "stacks",
+    "category": "dsa",
+    "difficulty": "easy"
+  },
+  {
+    "question": "What is the average time complexity of binary search?",
+    "options": ["O(n)", "O(log n)", "O(n log n)", "O(1)"],
+    "correctAnswer": 1,
+    "topic": "searching",
+    "category": "dsa",
+    "difficulty": "easy"
+  },
+  {
+    "question": "Which tree traversal visits nodes in Left → Root → Right order?",
+    "options": ["Pre-order", "In-order", "Post-order", "Level-order"],
+    "correctAnswer": 1,
+    "topic": "trees",
+    "category": "dsa",
+    "difficulty": "easy"
+  },
+  {
+    "question": "What is the worst-case time complexity of Quick Sort?",
+    "options": ["O(n log n)", "O(n²)", "O(n)", "O(log n)"],
+    "correctAnswer": 1,
+    "topic": "sorting",
+    "category": "dsa",
+    "difficulty": "medium"
+  },
+  {
+    "question": "Which algorithm is best suited for finding the shortest path in an unweighted graph?",
+    "options": ["DFS", "BFS", "Dijkstra", "A*"],
+    "correctAnswer": 1,
+    "topic": "graphs",
+    "category": "dsa",
+    "difficulty": "medium"
+  },
+  {
+    "question": "What is the time complexity of Merge Sort in all cases?",
+    "options": ["O(n)", "O(n²)", "O(n log n)", "O(log n)"],
+    "correctAnswer": 2,
+    "topic": "sorting",
+    "category": "dsa",
+    "difficulty": "easy"
+  },
+  {
+    "question": "What is the time complexity of inserting an element at the beginning of a singly linked list?",
+    "options": ["O(n)", "O(1)", "O(log n)", "O(n²)"],
+    "correctAnswer": 1,
+    "topic": "linked-lists",
+    "category": "dsa",
+    "difficulty": "easy"
+  },
+  {
+    "question": "Which data structure is most efficient for implementing a priority queue?",
+    "options": ["Stack", "Array", "Heap", "Linked List"],
+    "correctAnswer": 2,
+    "topic": "queues",
+    "category": "dsa",
+    "difficulty": "medium"
+  },
+  {
+    "question": "What is the average-case time complexity of searching in a hash table?",
+    "options": ["O(n)", "O(log n)", "O(1)", "O(n²)"],
+    "correctAnswer": 2,
+    "topic": "arrays",
+    "category": "dsa",
+    "difficulty": "easy"
+  },
+  {
+    "question": "In dynamic programming, what is memoization?",
+    "options": ["Compiling programs to bytecode", "Caching results of subproblems to avoid recomputation", "An iterative bottom-up DP approach", "A graph traversal technique"],
+    "correctAnswer": 1,
+    "topic": "dp",
+    "category": "dsa",
+    "difficulty": "easy"
+  },
+  {
+    "question": "What is the height of a balanced binary tree with n nodes?",
+    "options": ["O(n)", "O(log n)", "O(n²)", "O(√n)"],
+    "correctAnswer": 1,
+    "topic": "trees",
+    "category": "dsa",
+    "difficulty": "medium"
+  },
+  {
+    "question": "Which graph traversal algorithm uses a Queue internally?",
+    "options": ["DFS", "BFS", "Dijkstra", "Bellman-Ford"],
+    "correctAnswer": 1,
+    "topic": "graphs",
+    "category": "dsa",
+    "difficulty": "easy"
+  },
+  {
+    "question": "What does in-order traversal of a Binary Search Tree produce?",
+    "options": ["Ascending sorted order", "Descending sorted order", "Level-by-level order", "Random order"],
+    "correctAnswer": 0,
+    "topic": "trees",
+    "category": "dsa",
+    "difficulty": "easy"
+  },
+  {
+    "question": "What is the time complexity of the naive recursive Fibonacci solution?",
+    "options": ["O(n)", "O(n log n)", "O(2^n)", "O(n²)"],
+    "correctAnswer": 2,
+    "topic": "dp",
+    "category": "dsa",
+    "difficulty": "medium"
+  },
+  {
+    "question": "Which sorting algorithm is both stable and guarantees O(n log n) in all cases?",
+    "options": ["Quick Sort", "Bubble Sort", "Merge Sort", "Heap Sort"],
+    "correctAnswer": 2,
+    "topic": "sorting",
+    "category": "dsa",
+    "difficulty": "medium"
+  },
+  {
+    "question": "What technique is used to solve the Maximum Subarray Sum problem efficiently?",
+    "options": ["Divide and Conquer", "Kadane's Algorithm", "Two Pointers", "Binary Search"],
+    "correctAnswer": 1,
+    "topic": "dp",
+    "category": "dsa",
+    "difficulty": "medium"
+  },
+  {
+    "question": "What is the worst-case time complexity of searching in an unbalanced BST?",
+    "options": ["O(1)", "O(log n)", "O(n)", "O(n²)"],
+    "correctAnswer": 2,
+    "topic": "trees",
+    "category": "dsa",
+    "difficulty": "medium"
+  },
+  {
+    "question": "Which data structure follows FIFO (First In First Out) order?",
+    "options": ["Stack", "Queue", "Tree", "Graph"],
+    "correctAnswer": 1,
+    "topic": "queues",
+    "category": "dsa",
+    "difficulty": "easy"
+  },
+  {
+    "question": "In the sliding window technique, what type of problems is it primarily used for?",
+    "options": ["Tree traversal", "Finding optimal subarrays or substrings", "Graph shortest path", "Sorting arrays"],
+    "correctAnswer": 1,
+    "topic": "arrays",
+    "category": "dsa",
+    "difficulty": "medium"
+  }
+]

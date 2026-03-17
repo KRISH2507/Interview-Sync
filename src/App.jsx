@@ -5,11 +5,16 @@ import LandingPage from "./components/landing-page";
 import AuthPage from "./components/auth-page";
 
 import CandidateDashboard from "./components/candidate-dashboard";
+import CandidateVideoInterview from "./components/candidate-video-interview";
 import CandidateProfile from "./components/candidate-profile";
 import InterviewPractice from "./components/interview-practice";
 import ResumeUploadPage from "./components/resume-upload-page";
 import RecruiterDashboard from "./components/recruiter-dashboard";
+import AdminDashboard from "./components/admin-dashboard";
+import RecruiterInterviews from "./components/recruiter-interviews";
 import QuizHistory from "./components/quiz-history";
+import CodePractice from "./components/code-practice";
+import InterviewRoom from "./components/interview-room";
 import { QuizCompletion } from "./components/quiz-completion";
 
 import PrivateRoute from "./components/PrivateRoute";
@@ -42,10 +47,28 @@ function AnimatedRoutes() {
         />
 
         <Route
+          path="/candidate/video-interview"
+          element={
+            <PrivateRoute>
+              <CandidateVideoInterview />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
           path="/practice"
           element={
             <PrivateRoute>
               <InterviewPractice />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/practice/code"
+          element={
+            <PrivateRoute>
+              <CodePractice />
             </PrivateRoute>
           }
         />
@@ -82,6 +105,51 @@ function AnimatedRoutes() {
           element={
             <PrivateRoute>
               <RecruiterDashboard />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/recruiter/interviews"
+          element={
+            <PrivateRoute>
+              <RecruiterInterviews />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/admin/dashboard"
+          element={
+            <PrivateRoute>
+              <AdminDashboard />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/candidate/interview/:roomId"
+          element={
+            <PrivateRoute>
+              <InterviewRoom viewRole="candidate" />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/recruiter/interview/:roomId"
+          element={
+            <PrivateRoute>
+              <InterviewRoom viewRole="recruiter" />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/interview/:roomId"
+          element={
+            <PrivateRoute>
+              <InterviewRoom />
             </PrivateRoute>
           }
         />

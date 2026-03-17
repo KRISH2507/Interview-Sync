@@ -1,8 +1,42 @@
 import Interview from "../models/Interview.js";
 import Resume from "../models/Resume.js";
+import InterviewRoom from "../models/InterviewRoom.js";
+import InterviewResult from "../models/InterviewResult.js";
+import InterviewRequest from "../models/InterviewRequest.js";
 import openai from "../services/openai.js";
+import { getRedisClient } from "../config/redis.js";
+import { getPublicRandomCodeQuestion } from "./codeController.js";
 import { generateInterviewQuestions } from "../services/interviewAIService.js";
 import { normalizeQuestions } from "../utils/questionValidator.js";
+import { invalidateDashboardCache } from "../utils/cache.js";
+import crypto from "crypto";
+
+const INTERVIEW_ROOM_DRAFT_TTL_SECONDS = Number(process.env.REDIS_INTERVIEW_DRAFT_TTL || 7 * 24 * 60 * 60);
+
+const getInterviewRoomDraftKey = (roomId) => `draft:interview-room:${roomId}`;
+
+const isRoomMember = (room, userId) =>
+  String(room?.candidateId) === String(userId) || String(room?.interviewerId) === String(userId);
+
+const buildInitialRoomDraft = (roomId) => {
+  const question = getPublicRandomCodeQuestion("medium");
+  if (!question) {
+    return null;
+  }
+
+  return {
+    roomId,
+    question,
+    language: "javascript",
+    code: question?.starterCode?.javascript || "",
+    input: "",
+    updatedAt: new Date().toISOString(),
+  };
+};
+
+function generateRoomId() {
+  return `room_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
+}
 
 const FALLBACK_QUESTIONS = [
   {
@@ -162,6 +196,8 @@ export const submitInterview = async (req, res) => {
     interview.status = "completed";
     await interview.save();
 
+    await invalidateDashboardCache(interview.user);
+
     res.json({
       message: "Interview completed",
       overallScore: interview.overallScore,
@@ -170,6 +206,336 @@ export const submitInterview = async (req, res) => {
   } catch (err) {
     console.error("Submit interview error:", err);
     res.status(500).json({ message: "Failed to submit interview" });
+  }
+};
+
+export const createInterviewRoom = async (req, res) => {
+  try {
+    const { candidateId, interviewerId } = req.body;
+
+    if (!candidateId || !interviewerId) {
+      return res.status(400).json({ message: "candidateId and interviewerId are required" });
+    }
+
+    const roomId = generateRoomId();
+
+    const room = await InterviewRoom.create({
+      candidateId,
+      interviewerId,
+      roomId,
+      status: "scheduled",
+    });
+
+    res.status(201).json({
+      roomId: room.roomId,
+      room,
+    });
+  } catch (err) {
+    console.error("createInterviewRoom error:", err);
+    res.status(500).json({ message: "Failed to create interview room", error: err.message });
+  }
+};
+
+export const requestInterview = async (req, res) => {
+  try {
+    const candidateId = req.user.id;
+
+    const existingRequest = await InterviewRequest.findOne({
+      candidateId,
+      status: { $in: ["pending", "scheduled"] },
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    if (existingRequest) {
+      return res.json({
+        message: "Interview request already exists",
+        request: existingRequest,
+      });
+    }
+
+    const request = await InterviewRequest.create({
+      candidateId,
+      status: "pending",
+    });
+
+    res.status(201).json({
+      message: "Interview request created",
+      request,
+    });
+  } catch (err) {
+    console.error("requestInterview error:", err);
+    res.status(500).json({ message: "Failed to create interview request", error: err.message });
+  }
+};
+
+export const getMyInterviewRequests = async (req, res) => {
+  try {
+    const requests = await InterviewRequest.find({ candidateId: req.user.id })
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .lean();
+
+    res.json({ requests });
+  } catch (err) {
+    console.error("getMyInterviewRequests error:", err);
+    res.status(500).json({ message: "Failed to fetch interview requests", error: err.message });
+  }
+};
+
+export const listInterviewRequests = async (_req, res) => {
+  try {
+    const requests = await InterviewRequest.find({ status: { $in: ["pending", "scheduled"] } })
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
+
+    res.json({ requests });
+  } catch (err) {
+    console.error("listInterviewRequests error:", err);
+    res.status(500).json({ message: "Failed to fetch interview requests", error: err.message });
+  }
+};
+
+export const startInterviewFromRequest = async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const interviewerId = req.user.id;
+
+    const request = await InterviewRequest.findById(requestId);
+    if (!request) {
+      return res.status(404).json({ message: "Interview request not found" });
+    }
+
+    if (request.roomId) {
+      const existingRoom = await InterviewRoom.findOne({ roomId: request.roomId }).lean();
+      return res.json({ request, room: existingRoom || null });
+    }
+
+    const roomId = generateRoomId();
+    const room = await InterviewRoom.create({
+      candidateId: request.candidateId,
+      interviewerId,
+      roomId,
+      status: "scheduled",
+    });
+
+    request.interviewerId = interviewerId;
+    request.roomId = room.roomId;
+    request.status = "scheduled";
+    await request.save();
+
+    res.status(201).json({
+      message: "Interview room created from request",
+      request,
+      room,
+    });
+  } catch (err) {
+    console.error("startInterviewFromRequest error:", err);
+    res.status(500).json({ message: "Failed to start interview from request", error: err.message });
+  }
+};
+
+export const getInterviewRoomDraft = async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const room = await InterviewRoom.findOne({ roomId }).lean();
+
+    if (!room) {
+      return res.status(404).json({ message: "Interview room not found" });
+    }
+
+    if (!isRoomMember(room, req.user.id)) {
+      return res.status(403).json({ message: "Not authorized to access this room draft" });
+    }
+
+    const redis = await getRedisClient();
+    if (!redis) {
+      const fallbackDraft = buildInitialRoomDraft(roomId);
+      if (!fallbackDraft) {
+        return res.status(404).json({ message: "No coding question available for this room" });
+      }
+
+      return res.json({ draft: fallbackDraft, persisted: false });
+    }
+
+    const cacheKey = getInterviewRoomDraftKey(roomId);
+    const storedDraft = await redis.get(cacheKey);
+    if (storedDraft) {
+      return res.json({ draft: JSON.parse(storedDraft), persisted: true });
+    }
+
+    const initialDraft = buildInitialRoomDraft(roomId);
+    if (!initialDraft) {
+      return res.status(404).json({ message: "No coding question available for this room" });
+    }
+
+    await redis.set(cacheKey, JSON.stringify(initialDraft), { EX: INTERVIEW_ROOM_DRAFT_TTL_SECONDS });
+
+    return res.json({ draft: initialDraft, persisted: true });
+  } catch (err) {
+    console.error("getInterviewRoomDraft error:", err);
+    return res.status(500).json({ message: "Failed to fetch interview room draft", error: err.message });
+  }
+};
+
+export const saveInterviewRoomDraft = async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const room = await InterviewRoom.findOne({ roomId }).lean();
+
+    if (!room) {
+      return res.status(404).json({ message: "Interview room not found" });
+    }
+
+    if (String(room.candidateId) !== String(req.user.id)) {
+      return res.status(403).json({ message: "Only the candidate can update the room draft" });
+    }
+
+    const { question, language, code, input, updatedAt } = req.body;
+    if (!question?.id) {
+      return res.status(400).json({ message: "A valid question is required to save draft" });
+    }
+
+    const redis = await getRedisClient();
+    if (!redis) {
+      return res.status(503).json({ message: "Draft persistence is temporarily unavailable" });
+    }
+
+    const draftPayload = {
+      roomId,
+      question,
+      language: language || "javascript",
+      code: String(code || ""),
+      input: String(input || ""),
+      updatedAt: updatedAt || new Date().toISOString(),
+    };
+
+    await redis.set(getInterviewRoomDraftKey(roomId), JSON.stringify(draftPayload), {
+      EX: INTERVIEW_ROOM_DRAFT_TTL_SECONDS,
+    });
+
+    return res.json({ message: "Draft saved", draft: draftPayload });
+  } catch (err) {
+    console.error("saveInterviewRoomDraft error:", err);
+    return res.status(500).json({ message: "Failed to save interview room draft", error: err.message });
+  }
+};
+
+export const getInterviewRoom = async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const room = await InterviewRoom.findOne({ roomId });
+
+    if (!room) {
+      return res.status(404).json({ message: "Interview room not found" });
+    }
+
+    if (room.status === "scheduled") {
+      room.status = "active";
+      await room.save();
+    }
+
+    res.json({ room });
+  } catch (err) {
+    console.error("getInterviewRoom error:", err);
+    res.status(500).json({ message: "Failed to fetch interview room", error: err.message });
+  }
+};
+
+export const listInterviewRooms = async (_req, res) => {
+  try {
+    const rooms = await InterviewRoom.find({})
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
+
+    res.json({ rooms });
+  } catch (err) {
+    console.error("listInterviewRooms error:", err);
+    res.status(500).json({ message: "Failed to fetch interview rooms", error: err.message });
+  }
+};
+
+export const submitInterviewResult = async (req, res) => {
+  try {
+    const { candidateId, interviewerId, roomId, ratings, overallScore, feedback } = req.body;
+
+    if (!candidateId || !interviewerId || !roomId || !ratings) {
+      return res.status(400).json({ message: "candidateId, interviewerId, roomId and ratings are required" });
+    }
+
+    const normalizedRatings = {
+      technical: Number(ratings.technical ?? ratings.coding),
+      behavior: Number(ratings.behavior ?? ratings.communication),
+      communication: Number(ratings.communication),
+      problemSolving: Number(ratings.problemSolving),
+      confidence: Number(ratings.confidence),
+    };
+
+    const ratingValues = Object.values(normalizedRatings);
+    const hasInvalid = ratingValues.some((value) => Number.isNaN(value) || value < 1 || value > 10);
+    if (hasInvalid) {
+      return res.status(400).json({ message: "Ratings must be numbers between 1 and 10" });
+    }
+
+    const average = ratingValues.reduce((sum, value) => sum + value, 0) / ratingValues.length;
+    const computedOverallScore = Math.round((average / 10) * 100);
+
+    const result = await InterviewResult.create({
+      candidateId,
+      interviewerId,
+      roomId,
+      ratings: normalizedRatings,
+      overallScore: Number.isFinite(Number(overallScore)) ? Number(overallScore) : computedOverallScore,
+      feedback: feedback || "",
+    });
+
+    await InterviewRoom.findOneAndUpdate({ roomId }, { status: "completed" });
+    await InterviewRequest.findOneAndUpdate({ roomId }, { status: "completed", interviewerId });
+
+    await invalidateDashboardCache(candidateId);
+
+    res.status(201).json({
+      message: "Interview evaluation saved",
+      result,
+    });
+  } catch (err) {
+    console.error("submitInterviewResult error:", err);
+    res.status(500).json({ message: "Failed to submit interview result", error: err.message });
+  }
+};
+
+export const submitInterviewEvaluation = async (req, res) => {
+  return submitInterviewResult(req, res);
+};
+
+export const getMyInterviewResults = async (req, res) => {
+  try {
+    const results = await InterviewResult.find({ candidateId: req.user.id })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json(results);
+  } catch (err) {
+    console.error("getMyInterviewResults error:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const getInterviewResultsForCandidate = async (req, res) => {
+  try {
+    const candidateId = req.params.candidateId || req.user.id;
+
+    const results = await InterviewResult.find({ candidateId })
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
+
+    res.json({ results });
+  } catch (err) {
+    console.error("getInterviewResultsForCandidate error:", err);
+    res.status(500).json({ message: "Failed to fetch interview results", error: err.message });
   }
 };
 

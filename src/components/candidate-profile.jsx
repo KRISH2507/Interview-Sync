@@ -11,13 +11,14 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
+import { useTheme } from "../contexts/theme-context";
 
 import DashboardLayout from "./dashboard-layout";
 
 function Textarea({ className = "", ...props }) {
   return (
     <textarea
-      className={`w-full rounded-md border border-border bg-background p-2 text-foreground ${className}`}
+      className={`w-full rounded-lg border border-border bg-card p-2.5 text-foreground ${className}`}
       {...props}
     />
   );
@@ -27,6 +28,13 @@ export default function CandidateProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
+  const cardBg = isDark ? "#111827" : "#FFFFFF";
+  const borderColor = isDark ? "#334155" : "#E2E8F0";
+  const textPrimary = isDark ? "#F1F5F9" : "#0F172A";
+  const textSecondary = isDark ? "#CBD5E1" : "#475569";
 
   const [profile, setProfile] = useState({
     name: "",
@@ -114,16 +122,19 @@ export default function CandidateProfile() {
       <div className="mx-auto max-w-4xl space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">
-              My <span className="bg-gradient-to-r from-royal-600 to-purple-600 bg-clip-text text-transparent">Profile</span>
+            <h1 className="text-3xl font-bold" style={{ color: textPrimary }}>
+              My <span style={{ color: "#4F46E5" }}>Profile</span>
             </h1>
-            <p className="mt-2 text-muted-foreground">
+            <p className="mt-2" style={{ color: textSecondary }}>
               Manage your personal information and preferences
             </p>
           </div>
           <Button
             onClick={() => (isEditing ? saveProfile() : setIsEditing(true))}
-            className={isEditing ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-lg shadow-emerald-500/20" : ""}
+            className={isEditing
+              ? "bg-indigo-600 text-white hover:bg-indigo-700"
+              : "border text-slate-700"}
+            style={isEditing ? undefined : { borderColor, backgroundColor: cardBg, color: textSecondary }}
           >
             {isEditing ? (
               <span className="flex items-center gap-2">
@@ -143,54 +154,60 @@ export default function CandidateProfile() {
           </Button>
         </div>
 
-        <Card>
+        <Card className="border shadow-[0_4px_16px_rgba(0,0,0,0.04)]" style={{ borderColor, backgroundColor: cardBg }}>
           <CardHeader>
-            <CardTitle>Personal Information</CardTitle>
-            <CardDescription>Your basic details</CardDescription>
+            <CardTitle className="text-[22px] font-semibold" style={{ color: textPrimary }}>Personal Information</CardTitle>
+            <CardDescription style={{ color: textSecondary }}>Your basic details</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Full Name</Label>
+                <Label style={{ color: textPrimary }}>Full Name</Label>
                 <Input
                   value={profile.name}
                   disabled={!isEditing}
                   onChange={(e) =>
                     setProfile({ ...profile, name: e.target.value })
                   }
+                  className="rounded-lg border text-slate-900"
+                  style={{ borderColor, backgroundColor: cardBg, color: textPrimary }}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>Email</Label>
-                <Input value={profile.email} disabled />
+                <Label style={{ color: textPrimary }}>Email</Label>
+                <Input value={profile.email} disabled className="rounded-lg border text-slate-900" style={{ borderColor, backgroundColor: cardBg, color: textPrimary }} />
               </div>
 
               <div className="space-y-2">
-                <Label>Phone</Label>
+                <Label style={{ color: textPrimary }}>Phone</Label>
                 <Input
                   value={profile.phone}
                   disabled={!isEditing}
                   onChange={(e) =>
                     setProfile({ ...profile, phone: e.target.value })
                   }
+                  className="rounded-lg border text-slate-900"
+                  style={{ borderColor, backgroundColor: cardBg, color: textPrimary }}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>Location</Label>
+                <Label style={{ color: textPrimary }}>Location</Label>
                 <Input
                   value={profile.location}
                   disabled={!isEditing}
                   onChange={(e) =>
                     setProfile({ ...profile, location: e.target.value })
                   }
+                  className="rounded-lg border text-slate-900"
+                  style={{ borderColor, backgroundColor: cardBg, color: textPrimary }}
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Bio</Label>
+              <Label style={{ color: textPrimary }}>Bio</Label>
               <Textarea
                 rows={3}
                 value={profile.bio}
@@ -203,19 +220,20 @@ export default function CandidateProfile() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border shadow-[0_4px_16px_rgba(0,0,0,0.04)]" style={{ borderColor, backgroundColor: cardBg }}>
           <CardHeader>
-            <CardTitle>Skills</CardTitle>
-            <CardDescription>Your technical skills</CardDescription>
+            <CardTitle className="text-[22px] font-semibold" style={{ color: textPrimary }}>Skills</CardTitle>
+            <CardDescription style={{ color: textSecondary }}>Your technical skills</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-2">
               {profile.skills.map((skill) => (
                 <span
                   key={skill}
-                  className="inline-flex items-center gap-1 rounded-full border-2 border-royal-500/30 bg-gradient-to-r from-royal-500/10 to-purple-500/10 px-4 py-1.5 text-sm font-medium text-foreground hover:border-royal-500/50 hover:shadow-md transition-all"
+                  className="inline-flex items-center gap-1 rounded-full border px-4 py-1.5 text-sm font-medium transition-all"
+                  style={{ borderColor, backgroundColor: isDark ? "#0F172A" : "#F8FAFC", color: textPrimary }}
                 >
-                  <span className="text-royal-600 dark:text-royal-400">●</span>
+                  <span style={{ color: "#4F46E5" }}>●</span>
                   {skill}
                   {isEditing && (
                     <button
@@ -236,8 +254,10 @@ export default function CandidateProfile() {
                   value={newSkill}
                   onChange={(e) => setNewSkill(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && addSkill()}
+                  className="rounded-lg border text-slate-900"
+                  style={{ borderColor, backgroundColor: cardBg, color: textPrimary }}
                 />
-                <Button onClick={addSkill}>Add</Button>
+                <Button onClick={addSkill} className="bg-indigo-600 text-white hover:bg-indigo-700">Add</Button>
               </div>
             )}
           </CardContent>

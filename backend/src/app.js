@@ -6,6 +6,8 @@ import interviewRoutes from "./routes/interviewRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import practiceRoutes from "./routes/practiceRoutes.js";
+import codeRoutes from "./routes/codeRoutes.js";
 
 const app = express();
 
@@ -17,5 +19,7 @@ app.use("/api/interview", interviewRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/practice", practiceRoutes);
+app.use("/api/code", codeRoutes);
 
 export default app;

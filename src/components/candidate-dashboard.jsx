@@ -11,32 +11,59 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
-import { GlassCard } from "./ui/glass-card";
-import { GradientText } from "./ui/gradient-text";
 import { GradientBadge } from "./ui/gradient-badge";
 import { CircularProgress } from "./ui/circular-progress";
 import { AnimatedCounter } from "./ui/animated-counter";
-import { FloatingOrb } from "./ui/floating-orb";
+import { useTheme } from "../contexts/theme-context";
 
 import DashboardLayout from "./dashboard-layout";
 import { DashboardSkeleton } from "./loading/dashboard-skeleton";
 import { staggerContainer, staggerItem } from "../utils/animation-variants";
-import { Progress } from "./ui/progress";
+import { getMyInterviewResults } from "../services/api";
+
+function normalizeInterviewResult(result) {
+  if (!result) return null;
+
+  const ratings = result.ratings || {};
+  const derivedOverallScore = Number.isFinite(Number(result.overallScore))
+    ? Number(result.overallScore)
+    : Math.round(
+      ((Number(ratings.technical || ratings.coding || 0) +
+        Number(ratings.problemSolving || 0) +
+        Number(ratings.behavior || 0) +
+        Number(ratings.communication || 0) +
+        Number(ratings.confidence || 0)) /
+        50) *
+        100
+    );
+
+  return {
+    ...result,
+    id: result.id || result._id,
+    overallScore: Number.isFinite(derivedOverallScore) ? derivedOverallScore : 0,
+  };
+}
 
 function ScoreBadge({ score }) {
-  const getVariant = (score) => {
-    if (score >= 80) return 'success';
-    if (score >= 60) return 'warning';
-    return 'danger';
-  };
+  const backgroundColor = score >= 80 ? "#DCFCE7" : score >= 60 ? "#FEF3C7" : "#FEE2E2";
+  const color = score >= 80 ? "#22C55E" : score >= 60 ? "#F59E0B" : "#EF4444";
 
-  return <GradientBadge variant={getVariant(score)}>{score}%</GradientBadge>;
+  return (
+    <span
+      className="rounded-full px-3 py-1 text-sm font-semibold"
+      style={{ backgroundColor, color }}
+    >
+      {score}%
+    </span>
+  );
 }
 
 export default function CandidateDashboard() {
   const [dashboard, setDashboard] = useState(null);
+  const [interviewResults, setInterviewResults] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedQuiz, setSelectedQuiz] = useState(null);
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   useEffect(() => {
     async function loadDashboard() {
@@ -51,6 +78,22 @@ export default function CandidateDashboard() {
     }
 
     loadDashboard();
+  }, []);
+
+  useEffect(() => {
+    async function loadResults() {
+      try {
+        const res = await getMyInterviewResults();
+        const normalized = Array.isArray(res.data)
+          ? res.data.map(normalizeInterviewResult).filter(Boolean)
+          : [];
+        setInterviewResults(normalized);
+      } catch (err) {
+        console.error("Failed to load interview results", err);
+      }
+    }
+
+    loadResults();
   }, []);
 
   if (loading) {
@@ -70,26 +113,36 @@ export default function CandidateDashboard() {
   const totalQuestionsAnswered = dashboard?.totalQuestionsAnswered || 0;
   const totalCorrectAnswers = dashboard?.totalCorrectAnswers || 0;
   const interviewHistory = dashboard?.interviewHistory || [];
+  const dashboardInterviewResults = Array.isArray(dashboard?.interviewResults)
+    ? dashboard.interviewResults.map(normalizeInterviewResult).filter(Boolean)
+    : [];
+  const mergedInterviewResults = interviewResults.length > 0 ? interviewResults : dashboardInterviewResults;
   const userName = dashboard?.user?.name || "User";
 
   const latestQuiz = interviewHistory.length > 0 ? interviewHistory[0] : null;
 
+  const metricCardClass = "rounded-[14px] border bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(0,0,0,0.08)]";
+  const metricCardStyle = {
+    borderColor: isDark ? "#334155" : "#E2E8F0",
+    boxShadow: isDark ? "0 4px 16px rgba(0,0,0,0.35)" : "0 6px 20px rgba(0,0,0,0.05)",
+    backgroundColor: isDark ? "#111827" : "#FFFFFF",
+  };
+  const textPrimary = isDark ? "#F1F5F9" : "#0F172A";
+  const textSecondary = isDark ? "#CBD5E1" : "#475569";
+  const textMuted = isDark ? "#94A3B8" : "#64748B";
+
   return (
     <DashboardLayout role="candidate">
-      <FloatingOrb color="primary" size="lg" className="top-0 right-0" />
-      <FloatingOrb color="success" size="md" className="bottom-20 left-10" delay={2} />
-      <FloatingOrb color="accent" size="sm" className="top-40 right-20" delay={4} />
-
       <div className="relative space-y-8">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-4xl font-bold text-foreground">
-            Welcome back, <GradientText gradient="primary">{userName}</GradientText>! 👋
+          <h1 className="text-4xl font-bold" style={{ color: textPrimary }}>
+            Welcome back, <span style={{ color: "#4F46E5" }}>{userName}</span>! 👋
           </h1>
-          <p className="mt-2 text-lg text-muted-foreground">
+          <p className="mt-2 text-lg" style={{ color: textSecondary }}>
             Track your progress and continue your interview preparation
           </p>
         </motion.div>
@@ -118,7 +171,7 @@ export default function CandidateDashboard() {
         >
 
           <motion.div variants={staggerItem}>
-            <GlassCard className="p-6">
+            <div className={metricCardClass} style={metricCardStyle}>
               <div className="flex flex-col items-center text-center space-y-4">
                 <CircularProgress
                   value={profileCompletion}
@@ -127,19 +180,19 @@ export default function CandidateDashboard() {
                   showValue={true}
                 />
                 <div>
-                  <h3 className="text-sm font-semibold text-foreground mb-1">
+                  <h3 className="mb-1 text-[20px] font-semibold" style={{ color: textPrimary }}>
                     Profile Completion
                   </h3>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm" style={{ color: textSecondary }}>
                     Keep practicing to improve
                   </p>
                 </div>
               </div>
-            </GlassCard>
+            </div>
           </motion.div>
 
           <motion.div variants={staggerItem}>
-            <GlassCard className="p-6">
+            <div className={metricCardClass} style={metricCardStyle}>
               <div className="flex flex-col items-center text-center space-y-4">
                 <CircularProgress
                   value={averageScore}
@@ -148,19 +201,19 @@ export default function CandidateDashboard() {
                   showValue={true}
                 />
                 <div>
-                  <h3 className="text-sm font-semibold text-foreground mb-1">
+                  <h3 className="mb-1 text-[20px] font-semibold" style={{ color: textPrimary }}>
                     Average Score
                   </h3>
-                  <p className="text-xs">
+                  <p className="text-sm" style={{ color: textMuted }}>
                     <GradientBadge variant="primary" size="sm">{interviewReadiness}</GradientBadge>
                   </p>
                 </div>
               </div>
-            </GlassCard>
+            </div>
           </motion.div>
 
           <motion.div variants={staggerItem}>
-            <GlassCard className="p-6">
+            <div className={metricCardClass} style={metricCardStyle}>
               <div className="flex flex-col items-center text-center space-y-4">
                 <CircularProgress
                   value={accuracyPercentage}
@@ -169,50 +222,49 @@ export default function CandidateDashboard() {
                   showValue={true}
                 />
                 <div>
-                  <h3 className="text-sm font-semibold text-foreground mb-1">
+                  <h3 className="mb-1 text-[20px] font-semibold" style={{ color: textPrimary }}>
                     Accuracy Rate
                   </h3>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm" style={{ color: textSecondary }}>
                     {totalCorrectAnswers}/{totalQuestionsAnswered} correct
                   </p>
                 </div>
               </div>
-            </GlassCard>
+            </div>
           </motion.div>
 
           <motion.div variants={staggerItem}>
-            <GlassCard className="p-6">
+            <div className={metricCardClass} style={metricCardStyle}>
               <div className="flex flex-col items-center justify-center text-center space-y-4">
-                <div className="relative">
-                  <div className="text-6xl font-bold text-foreground">
+                <div>
+                  <div className="text-[32px] font-bold" style={{ color: textPrimary }}>
                     <AnimatedCounter value={totalSessions} />
                   </div>
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 blur-2xl -z-10" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-foreground mb-3">
+                  <h3 className="mb-3 text-[14px] font-medium" style={{ color: textMuted }}>
                     Practice Sessions
                   </h3>
                   <Link to="/practice">
-                    <Button className="w-full" size="sm">
+                    <Button className="w-full bg-indigo-600 text-white hover:bg-indigo-700" size="sm">
                       Start Practice
                     </Button>
                   </Link>
                 </div>
               </div>
-            </GlassCard>
+            </div>
           </motion.div>
         </motion.div>
 
         {latestQuiz && (
-          <GlassCard className="overflow-hidden">
-            <div className="p-6 border-b border-border bg-gradient-to-r from-blue-50/50 to-transparent dark:from-white/5 dark:to-transparent">
+          <div className="overflow-hidden rounded-[14px] border shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(0,0,0,0.08)]" style={{ borderColor: isDark ? "#334155" : "#E2E8F0", boxShadow: isDark ? "0 4px 16px rgba(0,0,0,0.35)" : "0 6px 20px rgba(0,0,0,0.05)", backgroundColor: isDark ? "#111827" : "#FFFFFF" }}>
+            <div className="p-6 border-b" style={{ borderColor: isDark ? "#334155" : "#E2E8F0" }}>
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-bold text-foreground">
+                  <h2 className="text-xl font-semibold" style={{ color: textPrimary }}>
                     Latest Quiz Results
                   </h2>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <p className="mt-1 text-sm" style={{ color: textSecondary }}>
                     Completed on {new Date(latestQuiz.createdAt).toLocaleDateString('en-US', {
                       weekday: 'long',
                       year: 'numeric',
@@ -225,33 +277,33 @@ export default function CandidateDashboard() {
               </div>
 
               <div className="grid grid-cols-3 gap-4 mt-6">
-                <div className="rounded-lg bg-slate-100 dark:bg-slate-800/50 p-3 text-center border border-slate-200 dark:border-slate-700/50">
-                  <p className="text-xs text-muted-foreground mb-1">Score</p>
-                  <p className="font-bold text-lg text-foreground">{latestQuiz.score}%</p>
+                <div className="rounded-lg border bg-white p-3 text-center" style={{ borderColor: "#E2E8F0" }}>
+                  <p className="mb-1 text-xs" style={{ color: "#64748B" }}>Score</p>
+                  <p className="text-lg font-bold" style={{ color: "#22C55E" }}>{latestQuiz.score}%</p>
                 </div>
-                <div className="rounded-lg bg-emerald-500/10 p-3 text-center border border-emerald-500/20">
-                  <p className="text-xs text-emerald-600 dark:text-emerald-400 mb-1">Correct</p>
-                  <p className="font-bold text-lg text-emerald-600 dark:text-emerald-400">{latestQuiz.correctAnswers}</p>
+                <div className="rounded-lg border p-3 text-center" style={{ backgroundColor: "#F0FDF4", borderColor: "#BBF7D0" }}>
+                  <p className="mb-1 text-xs" style={{ color: "#22C55E" }}>Correct</p>
+                  <p className="text-lg font-bold" style={{ color: "#22C55E" }}>{latestQuiz.correctAnswers}</p>
                 </div>
-                <div className="rounded-lg bg-red-500/10 p-3 text-center border border-red-500/20">
-                  <p className="text-xs text-red-600 dark:text-red-400 mb-1">Incorrect</p>
-                  <p className="font-bold text-lg text-red-600 dark:text-red-400">{latestQuiz.totalQuestions - latestQuiz.correctAnswers}</p>
+                <div className="rounded-lg border p-3 text-center" style={{ backgroundColor: "#FEF2F2", borderColor: "#FECACA" }}>
+                  <p className="mb-1 text-xs" style={{ color: "#EF4444" }}>Incorrect</p>
+                  <p className="text-lg font-bold" style={{ color: "#EF4444" }}>{latestQuiz.totalQuestions - latestQuiz.correctAnswers}</p>
                 </div>
               </div>
             </div>
 
             <CardContent className="p-0">
-              <div className="divide-y divide-white/5">
+              <div className="divide-y" style={{ borderColor: isDark ? "#334155" : "#E2E8F0" }}>
                 {(latestQuiz.questions || []).slice(0, 5).map((q, idx) => {
                   const isCorrect = q.userAnswer === q.correctAnswer;
                   return (
-                    <div key={idx} className="p-6 hover:bg-white/5 transition-colors">
+                    <div key={idx} className="p-6 transition-colors duration-200" style={{ backgroundColor: isDark ? "#111827" : "#FFFFFF" }}>
                       <div className="flex items-start gap-4">
-                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-700 text-xs font-semibold text-slate-900 dark:text-white">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold" style={{ backgroundColor: isDark ? "rgba(79,70,229,0.25)" : "#EEF2FF", color: "#4F46E5" }}>
                           {idx + 1}
                         </span>
                         <div className="flex-1">
-                          <p className="font-medium text-foreground">{q.question}</p>
+                          <p className="font-medium" style={{ color: textPrimary }}>{q.question}</p>
                           <div className="mt-2 space-y-1">
                             {(q.options || []).map((option, optIdx) => {
                               const isUserAnswer = q.userAnswer === optIdx;
@@ -259,13 +311,15 @@ export default function CandidateDashboard() {
 
                               let className = "rounded px-3 py-2 text-sm ";
                               if (isUserAnswer && isCorrect) {
-                                className += "bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 border border-green-500/50";
+                                className += "bg-green-50 text-green-700 border border-green-300";
                               } else if (isUserAnswer && !isCorrect) {
-                                className += "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 border border-red-500/50";
+                                className += "bg-red-50 text-red-700 border border-red-300";
                               } else if (isCorrectAnswer && !isCorrect) {
-                                className += "bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/30";
+                                className += "bg-green-50 text-green-700 border border-green-300";
                               } else {
-                                className += "bg-slate-100 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300";
+                                className += isDark
+                                  ? "bg-slate-800 text-slate-200 border border-slate-700"
+                                  : "bg-slate-50 text-slate-700 border border-slate-200";
                               }
 
                               return (
@@ -280,14 +334,14 @@ export default function CandidateDashboard() {
                             })}
                           </div>
                           {!isCorrect && q.feedback && (
-                            <div className="mt-2 rounded bg-blue-500/10 p-3 text-sm text-blue-400">
+                            <div className="mt-2 rounded border p-3 text-sm text-blue-700" style={{ backgroundColor: "#EFF6FF", borderColor: "#BFDBFE" }}>
                               <span className="font-semibold">💡 Feedback: </span>
                               {q.feedback}
                             </div>
                           )}
-                          <div className="mt-2 flex gap-2 text-xs text-muted-foreground">
-                            <span className="rounded bg-slate-700 px-2 py-1">{q.topic}</span>
-                            <span className="rounded bg-slate-700 px-2 py-1">{q.difficulty}</span>
+                          <div className="mt-2 flex gap-2 text-xs" style={{ color: textMuted }}>
+                            <span className="rounded px-2 py-1" style={{ backgroundColor: isDark ? "#1F2937" : "#F1F5F9" }}>{q.topic}</span>
+                            <span className="rounded px-2 py-1" style={{ backgroundColor: isDark ? "#1F2937" : "#F1F5F9" }}>{q.difficulty}</span>
                           </div>
                         </div>
                       </div>
@@ -297,7 +351,7 @@ export default function CandidateDashboard() {
               </div>
 
             </CardContent>
-          </GlassCard>
+          </div>
         )}
 
         {interviewHistory.length > 0 && (
@@ -307,13 +361,13 @@ export default function CandidateDashboard() {
             transition={{ delay: 0.3 }}
             className="text-center"
           >
-            <GlassCard className="p-6 border-dashed border-2 hover:border-primary/50 transition-colors">
+            <div className="rounded-[14px] border-2 border-dashed p-6 transition-colors" style={{ borderColor: isDark ? "#475569" : "#CBD5E1", backgroundColor: isDark ? "#111827" : "#FFFFFF" }}>
               <div className="flex flex-col items-center gap-4">
                 <div>
-                  <h3 className="text-lg font-semibold mb-2">
-                    <GradientText gradient="royal">Want to see all your quiz attempts?</GradientText>
+                  <h3 className="mb-2 text-lg font-semibold" style={{ color: textPrimary }}>
+                    Want to see all your quiz attempts?
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm" style={{ color: textSecondary }}>
                     View detailed history with all questions, answers, and feedback
                   </p>
                 </div>
@@ -326,20 +380,58 @@ export default function CandidateDashboard() {
                   </Button>
                 </Link>
               </div>
-            </GlassCard>
+            </div>
           </motion.div>
         )}
 
+        {mergedInterviewResults.length > 0 && (
+          <div className="rounded-[14px] border p-6" style={{ borderColor: isDark ? "#334155" : "#E2E8F0", backgroundColor: isDark ? "#111827" : "#FFFFFF" }}>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-semibold" style={{ color: textPrimary }}>
+                Interview <span style={{ color: "#4F46E5" }}>Results</span>
+              </h2>
+              <Link to="/history">
+                <Button size="sm" variant="outline">View History</Button>
+              </Link>
+            </div>
+
+            <div className="space-y-3">
+              {mergedInterviewResults.slice(0, 3).map((result) => (
+                <div key={result.id} className="rounded-lg border p-4" style={{ borderColor: isDark ? "#334155" : "#E2E8F0", backgroundColor: isDark ? "#0B1220" : "#F8FAFC" }}>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-semibold" style={{ color: textPrimary }}>
+                      Overall Score: {result.overallScore}%
+                    </p>
+                    <span className="text-xs" style={{ color: textSecondary }}>
+                      {new Date(result.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm" style={{ color: textSecondary }}>
+                    Technical: {result.ratings?.technical ?? result.ratings?.coding} •
+                    Problem Solving: {result.ratings?.problemSolving} •
+                    Behavior: {result.ratings?.behavior ?? "-"} •
+                    Communication: {result.ratings?.communication} •
+                    Confidence: {result.ratings?.confidence}
+                  </p>
+                  <p className="mt-2 text-sm" style={{ color: textPrimary }}>
+                    {result.feedback || "No feedback provided"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {interviewHistory.length === 0 && resumeScore > 0 && (
-          <Card className="border-dashed">
+          <Card className="border-2 border-dashed" style={{ borderColor: isDark ? "#475569" : "#CBD5E1", backgroundColor: isDark ? "#111827" : "#FFFFFF" }}>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <div className="text-center">
-                <h3 className="text-lg font-semibold text-foreground">No quiz history yet</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
+                <h3 className="text-lg font-semibold" style={{ color: textPrimary }}>No quiz history yet</h3>
+                <p className="mt-2 text-sm" style={{ color: textSecondary }}>
                   Start your first practice session to see your results here
                 </p>
                 <Link to="/practice">
-                  <Button className="mt-4">Start Your First Quiz</Button>
+                  <Button className="mt-4 bg-indigo-600 text-white hover:bg-indigo-700">Start Your First Quiz</Button>
                 </Link>
               </div>
             </CardContent>

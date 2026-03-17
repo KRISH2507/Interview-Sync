@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { ConfirmDialog } from "./ui/confirm-dialog";
+import { logoutUser } from "../services/api";
 
 export function Sidebar({ role, isOpen, onClose }) {
   const { pathname } = useLocation();
@@ -12,10 +13,16 @@ export function Sidebar({ role, isOpen, onClose }) {
     setShowLogoutConfirm(true);
   };
 
-  const handleLogoutConfirm = () => {
+  const handleLogoutConfirm = async () => {
     setShowLogoutConfirm(false);
+    try {
+      await logoutUser();
+    } catch (error) {
+      console.error("Logout request failed:", error);
+    }
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
+    localStorage.removeItem("userRole");
     navigate("/");
   };
 

@@ -1,271 +1,407 @@
 import { Link } from "react-router-dom";
-import { Button } from "./ui/button";
-import { ThemeToggle } from "./ui/theme-toggle";
-import { GradientText } from "./ui/gradient-text";
-import { FloatingOrb } from "./ui/floating-orb";
-import { GlassCard } from "./ui/glass-card";
-import { ScrollReveal } from "./animations/scroll-reveal";
 import { motion } from "framer-motion";
+import { ScrollReveal } from "./animations/scroll-reveal";
+import { useTheme } from "../contexts/theme-context";
+
+const platformFeatures = [
+  {
+    number: "01",
+    title: "Project-Based Stack Questions",
+    description: "Practice role-focused, scenario-based technical rounds with stack-specific project questions.",
+    tag: "Core Module",
+  },
+  {
+    number: "02",
+    title: "DSA MCQ Rounds",
+    description: "Run timed DSA MCQ tests with topic-based sets to strengthen fundamentals before coding rounds.",
+    tag: "Core Module",
+  },
+  {
+    number: "03",
+    title: "Compiler Practice Workspace",
+    description: "Solve coding prompts inside an integrated compiler flow designed for interview-style problem solving.",
+    tag: "Practice Engine",
+  },
+  {
+    number: "04",
+    title: "Live Admin Interview Portal",
+    description: "One interviewer hosts the video session while candidates answer through a controlled evaluation flow.",
+    tag: "Admin Module",
+  },
+  {
+    number: "05",
+    title: "Rating, Marks & Final Result",
+    description: "Admins review submissions, assign marks, and publish final outcomes directly to candidates.",
+    tag: "Evaluation",
+  },
+  {
+    number: "06",
+    title: "Lightweight Performance Design",
+    description: "Modular architecture keeps the platform fast, maintainable, and optimized as features scale.",
+    tag: "Optimization",
+  },
+];
+
+const workflowSteps = [
+  { step: "01", title: "Select Role",     desc: "Choose your target role and tech stack" },
+  { step: "02", title: "Take Rounds",     desc: "Project-based and DSA question sets served" },
+  { step: "03", title: "Code Solutions",  desc: "Integrated compiler practice workspace" },
+  { step: "04", title: "Live Interview",  desc: "Admin-led video session and evaluation" },
+  { step: "05", title: "Get Results",     desc: "Scorecards and final outcome delivered" },
+];
+
+const visualBoards = [
+  {
+    title: "Interview Operations",
+    image: "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    title: "Coding & Evaluation Workspace",
+    image: "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    title: "Focused Candidate Experience",
+    image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80",
+  },
+];
+
+const C = {
+  indigo:      "#4F46E5",
+  indigoHover: "#4338CA",
+  indigoDark:  "#6366F1",
+  violet:      "#7C3AED",
+};
 
 export default function LandingPage() {
-  return (
-    <div className="min-h-screen bg-background text-foreground overflow-hidden relative">
-      <div className="fixed inset-0 -z-10 overflow-hidden">
-        <FloatingOrb color="primary" size="xl" delay={0} className="top-0 left-0" />
-        <FloatingOrb color="accent" size="lg" delay={2} className="top-1/4 right-0" />
-        <FloatingOrb color="success" size="md" delay={4} className="bottom-1/4 left-1/4" />
-        <FloatingOrb color="emerald" size="sm" delay={6} className="bottom-0 right-1/4" />
-      </div>
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === "dark";
 
-      <header className="sticky top-0 z-50 glass border-b border-border">
+  const bg          = isDark ? "#0F172A"  : "#F8FAFC";
+  const cardBg      = isDark ? "#1E293B"  : "#FFFFFF";
+  const innerBg     = isDark ? "#0F172A"  : "#F8FAFC";
+  const heading     = isDark ? "#F1F5F9"  : "#0F172A";
+  const body        = isDark ? "#94A3B8"  : "#475569";
+  const muted       = "#64748B";
+  const border      = isDark ? "#334155"  : "#E2E8F0";
+  const primary     = isDark ? C.indigoDark : C.indigo;
+  const cardShadow  = isDark
+    ? "0 2px 8px rgba(0,0,0,0.35)"
+    : "0 6px 20px rgba(0,0,0,0.05)";
+  const cardShadowHover = isDark
+    ? "0 8px 24px rgba(0,0,0,0.5)"
+    : "0 10px 30px rgba(0,0,0,0.08)";
+  const indigoBadgeBg    = isDark ? "rgba(79,70,229,0.12)" : "#EEF2FF";
+  const indigoBadgeBorder = isDark ? "#312e81" : "#C7D2FE";
+
+  return (
+    <div
+      className="min-h-screen transition-colors duration-300"
+      style={{ backgroundColor: bg, fontFamily: "'Inter', -apple-system, sans-serif" }}
+    >
+      {/* Soft radial glow */}
+      <div
+        className="pointer-events-none fixed inset-0 -z-10"
+        style={{
+          background: isDark
+            ? "radial-gradient(ellipse 80% 40% at 50% -10%, rgba(79,70,229,0.18) 0%, transparent 60%)"
+            : "radial-gradient(ellipse 80% 40% at 50% -10%, rgba(79,70,229,0.07) 0%, transparent 60%)",
+        }}
+      />
+
+      {/* ── NAVBAR ───────────────────────────────────────── */}
+      <header
+        className="sticky top-0 z-50 border-b backdrop-blur-md transition-all duration-200"
+        style={{
+          backgroundColor: isDark ? "rgba(15,23,42,0.92)" : "rgba(255,255,255,0.82)",
+          borderColor: border,
+          boxShadow: isDark ? "none" : "0 1px 4px rgba(0,0,0,0.04)",
+        }}
+      >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <Link to="/" className="flex items-center gap-2 group">
-            <motion.div
-              className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary font-bold text-white shadow-md"
-              whileHover={{ scale: 1.1, rotate: 5 }}
-              whileTap={{ scale: 0.95 }}
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-2.5">
+            <div
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white"
+              style={{ background: `linear-gradient(135deg, ${C.indigo} 0%, ${C.violet} 100%)` }}
             >
               IS
-            </motion.div>
-            <span className="text-lg font-bold">
-              Interview<GradientText gradient="primary">Sync</GradientText>
+            </div>
+            <span className="text-[15px] font-semibold tracking-tight" style={{ color: heading }}>
+              Interview<span style={{ color: primary }}>Sync</span>
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-            <a href="#features" className="text-muted-foreground hover:text-primary transition-colors">
-              Features
-            </a>
-            <a href="#how" className="text-muted-foreground hover:text-primary transition-colors">
-              How it works
-            </a>
-            <a href="#pricing" className="text-muted-foreground hover:text-primary transition-colors">
-              Pricing
-            </a>
+          {/* Nav links */}
+          <nav className="hidden items-center gap-8 text-sm font-medium md:flex">
+            {[["#features", "Features"], ["#workflow", "Workflow"], ["#experience", "Experience"]].map(
+              ([href, label]) => (
+                <a
+                  key={href}
+                  href={href}
+                  style={{ color: body, transition: "color 0.15s ease" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = heading)}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = body)}
+                >
+                  {label}
+                </a>
+              )
+            )}
           </nav>
 
+          {/* Actions */}
           <div className="flex items-center gap-2">
-            <ThemeToggle />
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-xs font-medium transition-all duration-150"
+              style={{ borderColor: border, backgroundColor: cardBg, color: body }}
+            >
+              {isDark ? "🌙 Dark" : "☀️ Light"}
+            </button>
             <Link to="/auth">
-              <Button variant="ghost" size="sm">Sign In</Button>
+              <button
+                className="h-9 rounded-lg px-4 text-sm font-medium"
+                style={{ color: body, transition: "color 0.15s ease" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = heading)}
+                onMouseLeave={(e) => (e.currentTarget.style.color = body)}
+              >
+                Sign In
+              </button>
             </Link>
             <Link to="/auth">
-              <Button size="sm" variant="default">Get Started</Button>
+              <button
+                className="h-9 rounded-lg px-4 text-sm font-semibold text-white"
+                style={{
+                  backgroundColor: primary,
+                  boxShadow: "0 2px 8px rgba(79,70,229,0.25)",
+                  transition: "background-color 0.15s ease",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = C.indigoHover)}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = primary)}
+              >
+                Get Started
+              </button>
             </Link>
           </div>
         </div>
       </header>
 
-      <section className="relative min-h-[90vh] flex items-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-royal-500/5 via-purple-500/5 to-pink-500/5 animate-gradient-xy" />
-
-        <div className="absolute inset-0">
-          {[...Array(20)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute w-1 h-1 bg-primary/30 rounded-full"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-              }}
-              animate={{
-                y: [0, -30, 0],
-                opacity: [0.2, 0.8, 0.2],
-                scale: [1, 1.5, 1],
-              }}
-              transition={{
-                duration: 3 + Math.random() * 2,
-                repeat: Infinity,
-                delay: Math.random() * 2,
-              }}
-            />
-          ))}
-        </div>
-
-        <div className="mx-auto max-w-7xl px-6 py-20 text-center relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
-              className="inline-block mb-6"
-            >
-              <div className="px-4 py-2 rounded-full bg-gradient-to-r from-royal-500/10 to-purple-500/10 border border-royal-500/20 backdrop-blur-sm">
-                <span className="text-sm font-semibold bg-gradient-to-r from-royal-600 to-purple-600 bg-clip-text text-transparent">
-                  ✨ AI-Powered Interview Preparation Platform
-                </span>
-              </div>
-            </motion.div>
-
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight max-w-5xl mx-auto">
-              Master interviews with{" "}
-              <span className="relative inline-block">
-                <GradientText gradient="primary">AI-powered practice</GradientText>
-                <motion.span
-                  className="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-royal-500 to-purple-500 rounded-full"
-                  initial={{ scaleX: 0 }}
-                  animate={{ scaleX: 1 }}
-                  transition={{ delay: 0.8, duration: 0.8 }}
-                />
-              </span>
-            </h1>
-
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="mt-8 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed"
-            >
-              Get personalized interview prep. Upload your resume, practice with AI, get instant feedback, and land your dream role.
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="mt-10 flex flex-wrap gap-4 justify-center"
-            >
-              <Link to="/auth">
-                <Button size="lg" variant="default" className="group relative overflow-hidden shadow-xl shadow-royal-500/20 hover:shadow-2xl hover:shadow-royal-500/30 transition-all">
-                  <span className="relative z-10 flex items-center gap-2">
-                    Start Free Practice
-                    <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
+      {/* ── HERO ─────────────────────────────────────────── */}
+      <section
+        className="px-6 pb-24 pt-20 md:pt-28"
+        style={{
+          background: isDark
+            ? "linear-gradient(180deg, #0F172A 0%, #111827 100%)"
+            : "linear-gradient(180deg, #F8FAFC 0%, #EEF2FF 100%)",
+        }}
+      >
+        <div className="mx-auto max-w-7xl">
+          <div className="grid items-center gap-10 lg:grid-cols-[1.15fr_0.85fr]">
+            {/* Left — cleaner headline + CTA */}
+            <ScrollReveal variant="fadeUp" delay={0.05}>
+              <div>
+                <h1
+                  className="font-bold leading-[1.08] tracking-tight"
+                  style={{ color: heading, fontSize: "clamp(42px, 5vw, 62px)" }}
+                >
+                  Crack interviews
+                  <span
+                    className="block"
+                    style={{
+                      background: `linear-gradient(135deg, ${C.indigo} 0%, ${C.violet} 100%)`,
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      backgroundClip: "text",
+                    }}
+                  >
+                    with focused practice
                   </span>
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-purple-600 to-royal-600"
-                    initial={{ x: "-100%" }}
-                    whileHover={{ x: 0 }}
-                    transition={{ duration: 0.3 }}
-                  />
-                </Button>
-              </Link>
+                </h1>
 
-            </motion.div>
+                <p
+                  className="mt-5 max-w-lg leading-relaxed"
+                  style={{ color: body, fontSize: "17px" }}
+                >
+                  One workspace for DSA, coding rounds, and live interview evaluation.
+                </p>
 
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1 }}
-              className="mt-16 flex flex-wrap items-center justify-center gap-8 text-sm text-muted-foreground"
-            >
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                <span>No credit card required</span>
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <Link to="/auth">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="inline-flex h-11 items-center gap-2 rounded-[10px] px-6 text-[15px] font-semibold text-white"
+                      style={{
+                        backgroundColor: primary,
+                        boxShadow: "0 4px 14px rgba(79,70,229,0.30)",
+                        transition: "background-color 0.15s ease",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = C.indigoHover)}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = primary)}
+                    >
+                      Start Practice
+                      <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+                        <path d="M2.5 7.5h10M9 3.5l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </motion.button>
+                  </Link>
+                  <a href="#features">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="inline-flex h-11 items-center gap-2 rounded-[10px] border px-6 text-[15px] font-medium"
+                      style={{
+                        borderColor: border,
+                        color: body,
+                        backgroundColor: cardBg,
+                        transition: "border-color 0.15s ease, color 0.15s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = primary;
+                        e.currentTarget.style.color = primary;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = border;
+                        e.currentTarget.style.color = body;
+                      }}
+                    >
+                      Explore Platform
+                    </motion.button>
+                  </a>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </ScrollReveal>
+
+            {/* Right — abstract line structure */}
+            <ScrollReveal variant="scaleIn" delay={0.1}>
+              <div
+                className="relative overflow-hidden rounded-2xl border p-6"
+                style={{
+                  backgroundColor: cardBg,
+                  borderColor: border,
+                  boxShadow: isDark
+                    ? "0 0 0 1px rgba(99,102,241,0.1), 0 20px 40px rgba(0,0,0,0.35)"
+                    : "0 8px 32px rgba(0,0,0,0.07), 0 0 0 1px rgba(79,70,229,0.05)",
+                }}
+              >
+                <div
+                  className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full"
+                  style={{ background: "radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%)" }}
+                />
+                <div className="mb-5">
+                  <p className="text-xs font-semibold tracking-[0.2em]" style={{ color: muted }}>
+                    INTERVIEW FLOW MAP
+                  </p>
+                </div>
+                <svg viewBox="0 0 420 260" className="w-full">
+                  <defs>
+                    <linearGradient id="heroLine" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor={C.indigo} stopOpacity="0.95" />
+                      <stop offset="100%" stopColor={C.violet} stopOpacity="0.9" />
+                    </linearGradient>
+                  </defs>
+
+                  {[50, 95, 140, 185, 230].map((y) => (
+                    <line
+                      key={y}
+                      x1="20"
+                      y1={y}
+                      x2="400"
+                      y2={y}
+                      stroke={isDark ? "rgba(148,163,184,0.24)" : "rgba(100,116,139,0.25)"}
+                      strokeWidth="1"
+                    />
+                  ))}
+
+                  <path d="M30 50 C110 50, 120 140, 195 140 S300 95, 390 185" stroke="url(#heroLine)" strokeWidth="2.8" fill="none" strokeLinecap="round" />
+                  <path d="M30 185 C120 185, 140 95, 215 95 S320 140, 390 50" stroke={isDark ? "rgba(99,102,241,0.65)" : "rgba(79,70,229,0.6)"} strokeWidth="2" fill="none" strokeLinecap="round" />
+
+                  {[{ x: 30, y: 50 }, { x: 195, y: 140 }, { x: 390, y: 185 }, { x: 215, y: 95 }, { x: 390, y: 50 }].map((node, idx) => (
+                    <g key={`${node.x}-${node.y}-${idx}`}>
+                      <circle cx={node.x} cy={node.y} r="6.5" fill={cardBg} stroke={C.indigo} strokeWidth="2.2" />
+                      <circle cx={node.x} cy={node.y} r="2.4" fill={C.violet} />
+                    </g>
+                  ))}
                 </svg>
-                <span>Free forever plan</span>
+
+                <div className="mt-4 flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: C.indigo }} />
+                  <span className="text-xs" style={{ color: muted }}>
+                    Streamlined path from practice to final interview score
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                <span>10K+ happy users</span>
-              </div>
-            </motion.div>
-          </motion.div>
+            </ScrollReveal>
+          </div>
         </div>
       </section>
 
-      <ScrollReveal variant="fadeUp">
-        <section className="border-y border-border bg-gradient-to-b from-transparent via-primary/5 to-transparent">
-          <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-6 py-16 md:grid-cols-4">
-            {[
-              ["10K+", "Active Users"],
-              ["50K+", "Practice Sessions"],
-              ["95%", "Success Rate"],
-              ["4.9/5", "User Rating"],
-            ].map(([value, label], i) => (
-              <motion.div
-                key={label}
-                initial={{ opacity: 0, scale: 0.8 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="text-center"
-              >
-                <div className="text-4xl md:text-5xl font-bold">
-                  <GradientText gradient="primary">{value}</GradientText>
-                </div>
-                <div className="mt-2 text-sm text-muted-foreground">{label}</div>
-              </motion.div>
-            ))}
-          </div>
-        </section>
-      </ScrollReveal>
-
-      <section id="features" className="px-6 py-32">
+      {/* ── FEATURES ─────────────────────────────────────── */}
+      <section id="features" className="px-6 py-24">
         <div className="mx-auto max-w-7xl">
-          <ScrollReveal variant="fadeUp" className="text-center">
-            <h2 className="text-4xl md:text-5xl font-bold">
-              Powerful <GradientText gradient="accent">Features</GradientText>
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-              Everything you need to prepare, practice, and succeed in your interviews.
-            </p>
+          <ScrollReveal variant="fadeUp">
+            <div className="mb-14 max-w-2xl">
+              <div
+                className="mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5"
+                style={{ borderColor: indigoBadgeBorder, backgroundColor: indigoBadgeBg }}
+              >
+                <span className="text-xs font-semibold" style={{ color: primary }}>02 — MODULES</span>
+              </div>
+              <h2
+                className="font-bold tracking-tight"
+                style={{ color: heading, fontSize: "clamp(32px, 4vw, 48px)" }}
+              >
+                Platform features
+              </h2>
+              <p className="mt-4 text-lg" style={{ color: body }}>
+                Each module is implementation-ready and built for real evaluation workflows.
+              </p>
+            </div>
           </ScrollReveal>
 
-          <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-            {[
-              {
-                title: "Resume Analysis",
-                desc: "Upload your resume and extract key skills automatically.",
-                icon: "📄",
-                color: "from-cyan-500 to-cyan-600"
-              },
-              {
-                title: "AI Interview Questions",
-                desc: "Get personalized questions based on your unique skills.",
-                icon: "🤖",
-                color: "from-teal-500 to-teal-600"
-              },
-              {
-                title: "Instant Feedback",
-                desc: "Get real-time AI feedback to improve your performance.",
-                icon: "⚡",
-                color: "from-violet-500 to-violet-600"
-              },
-              {
-                title: "Analytics Dashboard",
-                desc: "Track your progress with detailed performance insights.",
-                icon: "📊",
-                color: "from-emerald-500 to-emerald-600"
-              },
-            ].map((feature, i) => (
-              <ScrollReveal key={feature.title} variant="fadeUp" delay={i * 0.15}>
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {platformFeatures.map((feature, index) => (
+              <ScrollReveal key={feature.title} variant="fadeUp" delay={index * 0.07}>
                 <motion.div
-                  whileHover={{ y: -8, scale: 1.02 }}
-                  transition={{ type: "spring", stiffness: 300 }}
+                  whileHover={{ y: -4 }}
+                  className="flex h-full flex-col rounded-2xl border p-6"
+                  style={{
+                    backgroundColor: cardBg,
+                    borderColor: border,
+                    boxShadow: cardShadow,
+                    transition: "box-shadow 0.2s ease, border-color 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = cardShadowHover;
+                    e.currentTarget.style.borderColor = isDark
+                      ? "rgba(99,102,241,0.45)"
+                      : "#C7D2FE";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = cardShadow;
+                    e.currentTarget.style.borderColor = border;
+                  }}
                 >
-                  <GlassCard className="h-full group hover:border-primary/60 transition-all relative overflow-hidden">
-                    <motion.div
-                      className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
-                    />
-
-                    <div className="relative z-10">
-                      <motion.div
-                        className={`inline-block p-3 rounded-lg bg-gradient-to-br ${feature.color} mb-4 shadow-lg`}
-                        whileHover={{ rotate: [0, -10, 10, -10, 0], scale: 1.1 }}
-                        transition={{ duration: 0.5 }}
-                      >
-                        <div className="text-3xl">{feature.icon}</div>
-                      </motion.div>
-                      <h3 className="text-lg font-bold mb-2 group-hover:text-primary transition-colors">
-                        {feature.title}
-                      </h3>
-                      <p className="text-muted-foreground text-sm">{feature.desc}</p>
-                    </div>
-                  </GlassCard>
+                  <div className="mb-5 flex items-start justify-between gap-2">
+                    <span
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-sm font-bold text-white"
+                      style={{ background: `linear-gradient(135deg, ${C.indigo} 0%, ${C.violet} 100%)` }}
+                    >
+                      {feature.number}
+                    </span>
+                    <span
+                      className="rounded-full border px-2.5 py-1 text-xs font-medium"
+                      style={{ borderColor: border, color: muted }}
+                    >
+                      {feature.tag}
+                    </span>
+                  </div>
+                  <h3 className="font-semibold leading-snug" style={{ color: heading, fontSize: "20px" }}>
+                    {feature.title}
+                  </h3>
+                  <p className="mt-3 flex-1 leading-relaxed" style={{ color: body, fontSize: "15px" }}>
+                    {feature.description}
+                  </p>
                 </motion.div>
               </ScrollReveal>
             ))}
@@ -273,33 +409,55 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="how" className="px-6 py-32 bg-gradient-to-b from-transparent via-primary/5 to-transparent">
-        <div className="mx-auto max-w-7xl">
-          <ScrollReveal variant="fadeUp" className="text-center">
-            <h2 className="text-4xl md:text-5xl font-bold">
-              How it <GradientText gradient="success">Works</GradientText>
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              A simple and effective 4-step process to success
-            </p>
+      {/* ── WORKFLOW ─────────────────────────────────────── */}
+      <section id="workflow" className="px-6 py-24">
+        <div
+          className="mx-auto max-w-7xl rounded-3xl border p-8 md:p-14"
+          style={{
+            backgroundColor: cardBg,
+            borderColor: border,
+            boxShadow: cardShadow,
+          }}
+        >
+          <ScrollReveal variant="fadeUp">
+            <div className="mb-12">
+              <div
+                className="mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5"
+                style={{ borderColor: indigoBadgeBorder, backgroundColor: indigoBadgeBg }}
+              >
+                <span className="text-xs font-semibold" style={{ color: primary }}>03 — WORKFLOW</span>
+              </div>
+              <h2
+                className="font-bold tracking-tight"
+                style={{ color: heading, fontSize: "clamp(32px, 4vw, 48px)" }}
+              >
+                Evaluation pipeline
+              </h2>
+              <p className="mt-3 max-w-2xl text-lg" style={{ color: body }}>
+                Candidate journey and admin control flow in one coherent, end‑to‑end process.
+              </p>
+            </div>
           </ScrollReveal>
 
-          <div className="mt-16 grid gap-6 md:grid-cols-4">
-            {[
-              { step: "01", title: "Upload Resume", desc: "Share your resume", icon: "📤" },
-              { step: "02", title: "Analyze Skills", desc: "AI extracts skills", icon: "🔍" },
-              { step: "03", title: "Practice", desc: "Answer interview questions", icon: "💬" },
-              { step: "04", title: "Improve", desc: "Get AI feedback", icon: "✨" },
-            ].map((item, i) => (
-              <ScrollReveal key={item.step} variant="fadeUp" delay={i * 0.1}>
-                <div className="relative">
-                  {i < 3 && <div className="hidden md:block absolute top-1/3 -right-3 w-6 h-0.5 bg-gradient-to-r from-primary to-transparent" />}
-                  <GlassCard className="text-center h-full">
-                    <div className="text-4xl mb-3">{item.icon}</div>
-                    <div className="text-2xl font-bold text-primary mb-1">{item.step}</div>
-                    <p className="font-semibold text-foreground">{item.title}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
-                  </GlassCard>
+          <div className="grid gap-4 md:grid-cols-5">
+            {workflowSteps.map((item, index) => (
+              <ScrollReveal key={item.step} variant="fadeUp" delay={index * 0.07}>
+                <div
+                  className="flex h-full flex-col rounded-xl border p-5"
+                  style={{
+                    backgroundColor: innerBg,
+                    borderColor: isDark ? "#2D3748" : "#F1F5F9",
+                    boxShadow: isDark ? "none" : "0 2px 6px rgba(0,0,0,0.03)",
+                  }}
+                >
+                  <div
+                    className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg text-sm font-bold text-white"
+                    style={{ background: `linear-gradient(135deg, ${C.indigo} 0%, ${C.violet} 100%)` }}
+                  >
+                    {item.step}
+                  </div>
+                  <p className="text-[15px] font-semibold" style={{ color: heading }}>{item.title}</p>
+                  <p className="mt-1.5 text-sm leading-relaxed" style={{ color: muted }}>{item.desc}</p>
                 </div>
               </ScrollReveal>
             ))}
@@ -307,186 +465,161 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="pricing" className="px-6 py-32">
+      {/* ── EXPERIENCE / VISUAL BOARDS ───────────────────── */}
+      <section id="experience" className="px-6 py-24">
         <div className="mx-auto max-w-7xl">
-          <ScrollReveal variant="fadeUp" className="text-center">
-            <h2 className="text-4xl md:text-5xl font-bold">
-              Simple <GradientText gradient="accent">Pricing</GradientText>
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Choose the perfect plan for your interview prep journey
-            </p>
+          <ScrollReveal variant="fadeUp">
+            <div className="mb-14 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+              <div className="max-w-xl">
+                <div
+                  className="mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5"
+                  style={{ borderColor: indigoBadgeBorder, backgroundColor: indigoBadgeBg }}
+                >
+                  <span className="text-xs font-semibold" style={{ color: primary }}>04 — EXPERIENCE</span>
+                </div>
+                <h2
+                  className="font-bold tracking-tight"
+                  style={{ color: heading, fontSize: "clamp(32px, 4vw, 48px)" }}
+                >
+                  Built for real interviews
+                </h2>
+              </div>
+              <p className="max-w-sm" style={{ color: body, fontSize: "15px" }}>
+                Clean, focused UI across all modules — from candidate practice to admin-led live sessions.
+              </p>
+            </div>
           </ScrollReveal>
 
-          <div className="mt-16 grid gap-8 md:grid-cols-2 max-w-4xl mx-auto">
-            <ScrollReveal variant="fadeUp">
-              <GlassCard className="h-full">
-                <h3 className="text-2xl font-bold">Free Plan</h3>
-                <p className="mt-2 text-muted-foreground text-sm">Perfect to start</p>
-                <p className="mt-6 text-5xl font-bold">
-                  <GradientText gradient="primary">$0</GradientText>
-                </p>
-                <ul className="mt-6 space-y-3 text-sm">
-                  <li className="flex items-center gap-2 text-muted-foreground">
-                    <span className="text-primary">✓</span> 5 practice sessions
-                  </li>
-                  <li className="flex items-center gap-2 text-muted-foreground">
-                    <span className="text-primary">✓</span> Basic feedback
-                  </li>
-                  <li className="flex items-center gap-2 text-muted-foreground">
-                    <span className="text-primary">✓</span> Resume analysis
-                  </li>
-                </ul>
-                <Button variant="outline" className="w-full mt-6">Get Started</Button>
-              </GlassCard>
-            </ScrollReveal>
-
-            <ScrollReveal variant="fadeUp" delay={0.1}>
-              <GlassCard className="h-full border-2 border-primary/50 relative">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="px-4 py-1 rounded-full bg-gradient-primary text-white text-xs font-bold">
-                    MOST POPULAR
-                  </span>
-                </div>
-                <h3 className="text-2xl font-bold mt-2">Pro Plan</h3>
-                <p className="mt-2 text-muted-foreground text-sm">Advanced features</p>
-                <p className="mt-6 text-5xl font-bold">
-                  <GradientText gradient="accent">$9.99</GradientText>
-                  <span className="text-lg text-muted-foreground font-normal">/month</span>
-                </p>
-                <ul className="mt-6 space-y-3 text-sm">
-                  <li className="flex items-center gap-2">
-                    <span className="text-accent">✓</span> Unlimited sessions
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-accent">✓</span> AI feedback
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-accent">✓</span> Performance tracking
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-accent">✓</span> Priority support
-                  </li>
-                </ul>
-                <Button size="default" className="w-full mt-6" variant="default">Upgrade Now</Button>
-              </GlassCard>
-            </ScrollReveal>
+          <div className="grid gap-6 md:grid-cols-3">
+            {visualBoards.map((board, index) => (
+              <ScrollReveal key={board.title} variant="fadeUp" delay={index * 0.08}>
+                <motion.article
+                  whileHover={{ y: -6 }}
+                  transition={{ duration: 0.2 }}
+                  className="group overflow-hidden rounded-2xl border"
+                  style={{
+                    backgroundColor: cardBg,
+                    borderColor: border,
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
+                    transition: "box-shadow 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = "0 12px 28px rgba(0,0,0,0.10)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.06)";
+                  }}
+                >
+                  <div className="relative overflow-hidden" style={{ height: "220px" }}>
+                    <img
+                      src={board.image}
+                      alt={board.title}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+                      style={{
+                        filter: isDark
+                          ? "brightness(0.72) contrast(1.05) saturate(0.85)"
+                          : "saturate(0.82) contrast(0.97)",
+                      }}
+                    />
+                    <div
+                      className="absolute inset-0"
+                      style={{
+                        background: isDark
+                          ? "linear-gradient(to top, rgba(15,23,42,0.65) 0%, transparent 55%)"
+                          : "linear-gradient(to top, rgba(15,23,42,0.20) 0%, transparent 55%)",
+                      }}
+                    />
+                  </div>
+                  <div
+                    className="border-t px-5 py-4"
+                    style={{ borderColor: isDark ? "#334155" : "#F1F5F9" }}
+                  >
+                    <p className="text-xs font-semibold tracking-widest" style={{ color: muted }}>
+                      0{index + 1}
+                    </p>
+                    <p className="mt-1 font-semibold" style={{ color: heading, fontSize: "16px" }}>
+                      {board.title}
+                    </p>
+                  </div>
+                </motion.article>
+              </ScrollReveal>
+            ))}
           </div>
         </div>
       </section>
 
-      <ScrollReveal variant="fadeUp">
-        <section className="px-6 py-32 bg-gradient-to-b from-transparent via-accent/5 to-transparent">
-          <div className="mx-auto max-w-7xl">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl md:text-5xl font-bold">
-                Loved by <GradientText gradient="accent">thousands</GradientText>
-              </h2>
-              <p className="mt-4 text-lg text-muted-foreground">
-                See what our users have to say about their success
-              </p>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-3">
-              {[
-                {
-                  name: "Sarah Chen",
-                  role: "Software Engineer at Google",
-                  content: "InterviewSync helped me land my dream job! The AI-powered questions were spot-on and the feedback was invaluable.",
-                  avatar: "👩‍💻",
-                  rating: 5
-                },
-                {
-                  name: "Michael Rodriguez",
-                  role: "Product Manager at Meta",
-                  content: "The practice sessions boosted my confidence tremendously. I went from nervous to prepared in just 2 weeks!",
-                  avatar: "👨‍💼",
-                  rating: 5
-                },
-                {
-                  name: "Emily Watson",
-                  role: "Data Scientist at Amazon",
-                  content: "Best interview prep tool I've used. The analytics dashboard helped me identify and improve my weak areas.",
-                  avatar: "👩‍🔬",
-                  rating: 5
-                }
-              ].map((testimonial, i) => (
-                <ScrollReveal key={testimonial.name} variant="fadeUp" delay={i * 0.1}>
-                  <motion.div
-                    whileHover={{ y: -5 }}
-                    transition={{ type: "spring", stiffness: 300 }}
-                  >
-                    <GlassCard className="h-full p-6 hover:border-accent/50 transition-colors">
-                      <div className="flex items-center gap-1 mb-4">
-                        {[...Array(testimonial.rating)].map((_, i) => (
-                          <svg key={i} className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                          </svg>
-                        ))}
-                      </div>
-                      <p className="text-foreground mb-6 italic">"{testimonial.content}"</p>
-                      <div className="flex items-center gap-3">
-                        <div className="text-4xl">{testimonial.avatar}</div>
-                        <div>
-                          <p className="font-semibold text-foreground">{testimonial.name}</p>
-                          <p className="text-sm text-muted-foreground">{testimonial.role}</p>
-                        </div>
-                      </div>
-                    </GlassCard>
-                  </motion.div>
-                </ScrollReveal>
-              ))}
-            </div>
-          </div>
-        </section>
-      </ScrollReveal>
-
-      <ScrollReveal variant="scaleIn">
-        <section className="px-6 py-32">
-          <GlassCard className="mx-auto max-w-4xl p-12 md:p-16 text-center shadow-lg hover:shadow-glow transition-shadow relative overflow-hidden">
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-br from-royal-500/10 via-purple-500/10 to-pink-500/10 -z-10"
-              animate={{
-                backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
-              }}
-              transition={{
-                duration: 10,
-                repeat: Infinity,
-                ease: "linear"
+      {/* ── CTA ──────────────────────────────────────────── */}
+      <section className="px-6 pb-24 pt-4">
+        <ScrollReveal variant="fadeUp">
+          <div
+            className="relative mx-auto max-w-6xl overflow-hidden rounded-3xl p-10 text-center text-white md:p-16"
+            style={{
+              background: `linear-gradient(135deg, ${C.indigo} 0%, ${C.violet} 60%, #9333EA 100%)`,
+              boxShadow: "0 20px 60px rgba(79,70,229,0.28)",
+            }}
+          >
+            {/* Decorative blobs */}
+            <div
+              className="pointer-events-none absolute inset-0"
+              style={{
+                backgroundImage:
+                  "radial-gradient(circle at 25% 20%, rgba(255,255,255,0.18) 0%, transparent 45%), radial-gradient(circle at 75% 80%, rgba(255,255,255,0.12) 0%, transparent 45%)",
               }}
             />
-
-            <h2 className="text-4xl md:text-5xl font-bold leading-tight">
-              Ready to ace your <GradientText gradient="accent">next interview?</GradientText>
+            <h2 className="relative text-3xl font-bold tracking-tight md:text-5xl">
+              Ready to ace your next interview?
             </h2>
-            <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto">
-              Join thousands of successful candidates who've used InterviewSync to land their dream roles.
+            <p className="relative mx-auto mt-5 max-w-2xl text-lg" style={{ opacity: 0.88 }}>
+              Start with the full platform — DSA practice, coding workspace, admin-led sessions,
+              and automated scoring in one place.
             </p>
-
-            <div className="mt-8 flex flex-wrap gap-4 justify-center">
+            <div className="relative mt-9 flex flex-wrap justify-center gap-4">
               <Link to="/auth">
-                <Button size="lg" variant="default" className="shadow-xl shadow-royal-500/20 hover:shadow-2xl hover:shadow-royal-500/30">
-                  Start Practicing Now
-                </Button>
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="inline-flex h-12 items-center gap-2 rounded-[10px] bg-white px-8 text-[15px] font-semibold"
+                  style={{ color: C.indigo, transition: "opacity 0.15s ease" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.92")}
+                  onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+                >
+                  Start with InterviewSync
+                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+                    <path d="M2.5 7.5h10M9 3.5l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </motion.button>
               </Link>
-              <Button size="lg" variant="outline">
-                Learn More
-              </Button>
+              <a href="#features">
+                <button className="inline-flex h-12 items-center gap-2 rounded-[10px] border border-white/30 bg-white/10 px-8 text-[15px] font-medium text-white backdrop-blur-sm transition-colors duration-150 hover:bg-white/20">
+                  View All Features
+                </button>
+              </a>
             </div>
-          </GlassCard>
-        </section>
-      </ScrollReveal>
-
-      <footer className="border-t border-border px-6 py-12 text-center">
-        <div className="mx-auto max-w-7xl">
-          <p className="text-sm text-muted-foreground">
-            © 2025 InterviewSync. Empower your interview journey. Built with ❤️ for success.
-          </p>
-          <div className="mt-4 flex justify-center gap-6 text-sm">
-            <a href="#" className="text-muted-foreground hover:text-primary transition-colors">Privacy</a>
-            <a href="#" className="text-muted-foreground hover:text-primary transition-colors">Terms</a>
-            <a href="#" className="text-muted-foreground hover:text-primary transition-colors">Contact</a>
           </div>
+        </ScrollReveal>
+      </section>
+
+      {/* ── FOOTER ───────────────────────────────────────── */}
+      <footer className="border-t px-6 py-8" style={{ borderColor: border }}>
+        <div
+          className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 text-sm md:flex-row"
+          style={{ color: muted }}
+        >
+          <div className="flex items-center gap-2">
+            <div
+              className="flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold text-white"
+              style={{ background: `linear-gradient(135deg, ${C.indigo} 0%, ${C.violet} 100%)` }}
+            >
+              IS
+            </div>
+            <span>InterviewSync</span>
+          </div>
+          <span>© 2026 InterviewSync · Structured interview preparation platform.</span>
+          <nav className="flex gap-6">
+            <a href="#features" className="transition-opacity duration-150 hover:opacity-70">Features</a>
+            <a href="#workflow" className="transition-opacity duration-150 hover:opacity-70">Workflow</a>
+            <Link to="/auth" className="transition-opacity duration-150 hover:opacity-70">Sign In</Link>
+          </nav>
         </div>
       </footer>
     </div>
