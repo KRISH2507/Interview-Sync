@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import DashboardLayout from "./dashboard-layout";
 import { Button } from "./ui/button";
-import { getMyInterviewRequests, requestInterview } from "../services/api";
+import { getInterviewRooms, getMyInterviewRequests, requestInterview } from "../services/api";
 import { useTheme } from "../contexts/theme-context";
 
 export default function CandidateVideoInterview() {
@@ -15,6 +15,7 @@ export default function CandidateVideoInterview() {
   const candidateId = localStorage.getItem("userId") || "Not available";
 
   const [requests, setRequests] = useState([]);
+  const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [requesting, setRequesting] = useState(false);
   const [error, setError] = useState("");
@@ -22,8 +23,13 @@ export default function CandidateVideoInterview() {
   const loadRequests = async () => {
     setError("");
     try {
-      const res = await getMyInterviewRequests();
-      setRequests(res.data?.requests || []);
+      const [requestsRes, roomsRes] = await Promise.all([
+        getMyInterviewRequests(),
+        getInterviewRooms(),
+      ]);
+
+      setRequests(requestsRes.data?.requests || []);
+      setRooms(roomsRes.data?.rooms || []);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load interview requests");
     } finally {
@@ -42,10 +48,23 @@ export default function CandidateVideoInterview() {
     return () => clearInterval(interval);
   }, []);
 
-  const activeRequest = useMemo(
-    () => requests.find((item) => item.status === "scheduled" || item.status === "pending") || null,
+  const activeScheduledRequest = useMemo(
+    () => requests.find((item) => item.status === "scheduled" && item.roomId) || null,
     [requests]
   );
+
+  const activePendingRequest = useMemo(
+    () => requests.find((item) => item.status === "pending") || null,
+    [requests]
+  );
+
+  const joinableRoom = useMemo(
+    () => rooms.find((room) => room.status === "scheduled" || room.status === "active") || null,
+    [rooms]
+  );
+
+  const activeRequest = activeScheduledRequest || activePendingRequest || null;
+  const joinRoomId = activeScheduledRequest?.roomId || joinableRoom?.roomId || "";
 
   const handleRequestInterview = async () => {
     setRequesting(true);
@@ -68,7 +87,7 @@ export default function CandidateVideoInterview() {
     }
   };
 
-  const statusText = activeRequest?.status === "scheduled"
+  const statusText = joinRoomId
     ? "Interview scheduled"
     : activeRequest?.status === "pending"
       ? "Waiting for recruiter"
@@ -105,7 +124,7 @@ export default function CandidateVideoInterview() {
             <div className="flex flex-wrap gap-3">
               <Button
                 onClick={handleRequestInterview}
-                disabled={requesting || activeRequest?.status === "pending" || activeRequest?.status === "scheduled"}
+                disabled={requesting || activeRequest?.status === "pending" || Boolean(joinRoomId)}
               >
                 {requesting ? "Requesting..." : activeRequest ? "Request Sent" : "Request Interview"}
               </Button>
@@ -116,8 +135,8 @@ export default function CandidateVideoInterview() {
                 </Button>
               )}
 
-              {activeRequest?.status === "scheduled" && activeRequest?.roomId && (
-                <Link to={`/candidate/interview/${activeRequest.roomId}`}>
+              {joinRoomId && (
+                <Link to={`/candidate/interview/${joinRoomId}`}>
                   <Button className="bg-green-600 hover:bg-green-700">
                     ✓ Join Interview Now
                   </Button>

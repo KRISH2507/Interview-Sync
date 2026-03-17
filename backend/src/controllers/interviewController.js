@@ -308,8 +308,31 @@ export const startInterviewFromRequest = async (req, res) => {
     }
 
     if (request.roomId) {
-      const existingRoom = await InterviewRoom.findOne({ roomId: request.roomId }).lean();
-      return res.json({ request, room: existingRoom || null });
+      const existingRoom = await InterviewRoom.findOne({ roomId: request.roomId });
+
+      if (existingRoom) {
+        let updated = false;
+
+        if (request.status !== "scheduled") {
+          request.status = "scheduled";
+          updated = true;
+        }
+
+        if (!request.interviewerId) {
+          request.interviewerId = interviewerId;
+          updated = true;
+        }
+
+        if (updated) {
+          await request.save();
+        }
+
+        return res.json({ request, room: existingRoom });
+      }
+
+      request.roomId = "";
+      request.status = "pending";
+      await request.save();
     }
 
     const roomId = generateRoomId();
@@ -445,7 +468,18 @@ export const getInterviewRoom = async (req, res) => {
 
 export const listInterviewRooms = async (_req, res) => {
   try {
-    const rooms = await InterviewRoom.find({})
+    const userId = _req.user?.id;
+    const userRole = String(_req.user?.role || "candidate").toLowerCase();
+
+    if (!userId) {
+      return res.status(401).json({ message: "Not authorized" });
+    }
+
+    const query = userRole === "recruiter"
+      ? { interviewerId: userId }
+      : { candidateId: userId };
+
+    const rooms = await InterviewRoom.find(query)
       .sort({ createdAt: -1 })
       .limit(100)
       .lean();
