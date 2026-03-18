@@ -5,6 +5,7 @@ import Editor from "@monaco-editor/react";
 import DashboardLayout from "./dashboard-layout";
 import { Button } from "./ui/button";
 import {
+  getCurrentUser,
   getInterviewRoom,
   getInterviewRoomDraft,
   getRandomCodeQuestion,
@@ -58,30 +59,6 @@ function pickLatestDraft(localDraft, remoteDraft) {
     : remoteDraft;
 }
 
-function decodeToken() {
-  try {
-    // Use localStorage role as primary source (always accurate, no re-login needed)
-    const storedRole = localStorage.getItem("userRole") || "candidate";
-    const token = localStorage.getItem("token");
-    if (!token) return { id: "", role: storedRole };
-    const payload = token.split(".")[1];
-    if (!payload) return { id: "", role: storedRole };
-    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const json = JSON.parse(atob(normalized));
-    return {
-      id: json?.id || "",
-      // JWT role takes precedence if present, else fall back to localStorage
-      role: json?.role || storedRole
-    };
-  } catch {
-    return { id: "", role: localStorage.getItem("userRole") || "candidate" };
-  }
-}
-
-function decodeTokenUserId() {
-  return decodeToken().id;
-}
-
 function getSocketBaseUrl() {
   const envBase = import.meta.env.VITE_API_BASE_URL || import.meta.env.NEXT_PUBLIC_API_URL || "";
   if (envBase) return envBase.replace(/\/api\/?$/, "");
@@ -124,8 +101,9 @@ export default function InterviewRoom({ viewRole }) {
   const [savingResult, setSavingResult] = useState(false);
   const [resultSaved, setResultSaved] = useState(false);
   const [draftStatus, setDraftStatus] = useState("");
+  const [currentUser, setCurrentUser] = useState({ id: "", role: "candidate" });
+  const [authLoading, setAuthLoading] = useState(true);
 
-  const currentUser = useMemo(() => decodeToken(), []);
   const currentUserId = currentUser.id;
   const userRole = currentUser.role;
   
@@ -160,6 +138,36 @@ export default function InterviewRoom({ viewRole }) {
     () => LANGUAGE_OPTIONS.find((option) => option.value === language) || LANGUAGE_OPTIONS[0],
     [language]
   );
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadCurrentUser = async () => {
+      try {
+        const user = await getCurrentUser();
+        if (mounted) {
+          setCurrentUser({
+            id: String(user?.id || ""),
+            role: String(user?.role || "candidate"),
+          });
+        }
+      } catch {
+        if (mounted) {
+          setCurrentUser({ id: "", role: "candidate" });
+        }
+      } finally {
+        if (mounted) {
+          setAuthLoading(false);
+        }
+      }
+    };
+
+    loadCurrentUser();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const applyDraft = (draft) => {
     if (!draft) return;
@@ -210,6 +218,10 @@ export default function InterviewRoom({ viewRole }) {
   };
 
   useEffect(() => {
+    if (authLoading || !currentUserId) {
+      return undefined;
+    }
+
     let isMounted = true;
 
     async function initialize() {
@@ -326,7 +338,14 @@ export default function InterviewRoom({ viewRole }) {
         localStreamRef.current.getTracks().forEach((track) => track.stop());
       }
     };
-  }, [roomId, currentUserId]);
+  }, [roomId, currentUserId, authLoading]);
+
+  useEffect(() => {
+    if (!authLoading && !currentUserId) {
+      setLoading(false);
+      setError("Session expired. Please sign in again.");
+    }
+  }, [authLoading, currentUserId]);
 
   useEffect(() => {
     if (isEvaluator || !roomId || !question) {

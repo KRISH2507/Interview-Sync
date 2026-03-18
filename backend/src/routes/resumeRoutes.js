@@ -2,6 +2,7 @@ import express from "express";
 import multer from "multer";
 import { uploadResume } from "../controllers/resumeController.js";
 import { protect } from "../middleware/authMiddleware.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ router.post(
   "/upload",
   protect,
   upload.single("resume"),
-  uploadResume
+  asyncHandler(uploadResume)
 );
 
 export default router;

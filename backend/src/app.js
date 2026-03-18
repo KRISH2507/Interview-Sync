@@ -1,5 +1,8 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import cookieParser from "cookie-parser";
+import compression from "compression";
 
 import resumeRoutes from "./routes/resumeRoutes.js";
 import interviewRoutes from "./routes/interviewRoutes.js";
@@ -8,9 +11,22 @@ import profileRoutes from "./routes/profileRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import practiceRoutes from "./routes/practiceRoutes.js";
 import codeRoutes from "./routes/codeRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
+import { csrfProtection } from "./middleware/csrfMiddleware.js";
+import { httpLogger, requestMetrics } from "./middleware/requestMetricsMiddleware.js";
+import {
+	aiRouteLimiter,
+	authRouteLimiter,
+	publicRouteLimiter,
+} from "./middleware/routeRateLimitProfiles.js";
 
 const app = express();
 app.set("trust proxy", 1);
+app.use(helmet());
+app.use(compression());
+app.use(httpLogger);
+app.use(requestMetrics);
 
 const configuredOrigins = [
 	...String(process.env.FRONTEND_URLS || "")
@@ -43,17 +59,22 @@ app.use(
 	})
 );
 app.use(express.json());
+app.use(cookieParser());
+app.use(csrfProtection);
 
-app.get("/ping", (_req, res) => {
+app.get("/ping", publicRouteLimiter, (_req, res) => {
 	res.json({ ok: true, service: "interviewsync-backend" });
 });
 
 app.use("/api/resume", resumeRoutes);
-app.use("/api/interview", interviewRoutes);
+app.use("/api/interview", aiRouteLimiter, interviewRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/profile", profileRoutes);
-app.use("/api/auth", authRoutes);
-app.use("/api/practice", practiceRoutes);
-app.use("/api/code", codeRoutes);
+app.use("/api/auth", authRouteLimiter, authRoutes);
+app.use("/api/practice", aiRouteLimiter, practiceRoutes);
+app.use("/api/code", aiRouteLimiter, codeRoutes);
+app.use("/api/admin", authRouteLimiter, adminRoutes);
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 export default app;

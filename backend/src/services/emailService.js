@@ -1,6 +1,7 @@
 import axios from "axios";
+import { enqueueOtpEmailJob } from "../queues/emailQueue.js";
 
-export const sendOtpEmail = async ({ name, email, otp }) => {
+export const sendOtpEmailNow = async ({ name, email, otp }) => {
   const serviceId = process.env.EMAILJS_SERVICE_ID;
   const templateId = process.env.EMAILJS_TEMPLATE_ID;
   const publicKey = process.env.EMAILJS_PUBLIC_KEY;
@@ -103,4 +104,22 @@ export const sendOtpEmail = async ({ name, email, otp }) => {
       }`
     );
   }
+};
+
+export const sendOtpEmail = async ({ name, email, otp }) => {
+  const mode = String(process.env.EMAIL_DELIVERY_MODE || "sync").toLowerCase();
+
+  if (mode !== "queue") {
+    return sendOtpEmailNow({ name, email, otp });
+  }
+
+  const job = await enqueueOtpEmailJob({ name, email, otp });
+  if (!job) {
+    return sendOtpEmailNow({ name, email, otp });
+  }
+
+  return {
+    queued: true,
+    jobId: job.id,
+  };
 };

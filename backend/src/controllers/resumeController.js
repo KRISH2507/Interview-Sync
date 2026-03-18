@@ -3,6 +3,7 @@ import User from "../models/User.js";
 import geminiClient from "../config/ai.js";
 import mammoth from "mammoth";
 import { invalidateDashboardCache } from "../utils/cache.js";
+import { sendError, sendSuccess } from "../utils/response.js";
 
 export const uploadResume = async (req, res) => {
   try {
@@ -10,16 +11,18 @@ export const uploadResume = async (req, res) => {
     const file = req.file;
 
     if (!file) {
-      return res.status(400).json({ message: "No file uploaded" });
+      return sendError(res, 400, "No file uploaded");
     }
 
     let rawText = "";
 
     try {
       if (file.mimetype === "application/pdf") {
-        return res.status(400).json({ 
-          message: "PDF support coming soon. Please upload a DOCX file or provide text directly." 
-        });
+        return sendError(
+          res,
+          400,
+          "PDF support coming soon. Please upload a DOCX file or provide text directly."
+        );
       } else if (
         file.mimetype ===
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -27,15 +30,15 @@ export const uploadResume = async (req, res) => {
         const result = await mammoth.extractRawText({ buffer: file.buffer });
         rawText = result.value;
       } else {
-        return res.status(400).json({ message: "Unsupported file type. Please use DOCX." });
+        return sendError(res, 400, "Unsupported file type. Please use DOCX.");
       }
     } catch (fileError) {
       console.error("File parsing error:", fileError);
-      return res.status(400).json({ message: "Failed to parse file" });
+      return sendError(res, 400, "Failed to parse file");
     }
 
     if (!rawText || rawText.trim().length < 50) {
-      return res.status(400).json({ message: "Resume text too short (minimum 50 characters)" });
+      return sendError(res, 400, "Resume text too short (minimum 50 characters)");
     }
 
     let analysis;
@@ -149,13 +152,12 @@ Return ONLY the JSON object, no other text.`;
 
     await invalidateDashboardCache(userId);
 
-    res.status(201).json({
-      message: "Resume uploaded and analyzed successfully",
+    return sendSuccess(res, 201, "Resume uploaded and analyzed successfully", {
       score,
       analysis,
     });
   } catch (error) {
     console.error("Resume upload error:", error);
-    res.status(500).json({ message: "Resume processing failed", error: error.message });
+    return sendError(res, 500, "Resume processing failed", { error: error.message });
   }
 };

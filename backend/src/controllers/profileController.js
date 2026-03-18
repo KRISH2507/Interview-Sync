@@ -1,37 +1,46 @@
 import User from "../models/User.js";
 import { invalidateDashboardCache } from "../utils/cache.js";
+import { sendError, sendSuccess } from "../utils/response.js";
 
 export const getProfile = async (req, res) => {
   try {
     const userId = req.user?.id || req.params.userId;
-    if (!userId) return res.status(400).json({ message: "userId required" });
+    if (!userId) {
+      return sendError(res, 400, "userId required");
+    }
 
     const user = await User.findById(userId).select("-password");
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) {
+      return sendError(res, 404, "User not found");
+    }
 
-    res.json(user);
+    return sendSuccess(res, 200, "Profile fetched", user);
   } catch (err) {
     console.error("Get profile error:", err);
-    res.status(500).json({ message: "Failed to get profile" });
+    return sendError(res, 500, "Failed to get profile", { error: err.message });
   }
 };
 
 export const updateProfile = async (req, res) => {
   try {
     const userId = req.user?.id || req.params.userId;
-    if (!userId) return res.status(400).json({ message: "userId required" });
+    if (!userId) {
+      return sendError(res, 400, "userId required");
+    }
 
     const updated = await User.findByIdAndUpdate(userId, req.body, {
       new: true,
       select: "-password",
     });
-    if (!updated) return res.status(404).json({ message: "User not found" });
+    if (!updated) {
+      return sendError(res, 404, "User not found");
+    }
 
     await invalidateDashboardCache(userId);
 
-    res.json(updated);
+    return sendSuccess(res, 200, "Profile updated", updated);
   } catch (err) {
     console.error("Update profile error:", err);
-    res.status(500).json({ message: "Failed to update profile" });
+    return sendError(res, 500, "Failed to update profile", { error: err.message });
   }
 };

@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
+import { useEffect } from "react";
 
 import LandingPage from "./components/landing-page";
 import AuthPage from "./components/auth-page";
@@ -18,6 +19,7 @@ import InterviewRoom from "./components/interview-room";
 import { QuizCompletion } from "./components/quiz-completion";
 
 import PrivateRoute from "./components/PrivateRoute";
+import { initializeAuthSecurity } from "./services/api";
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -159,6 +161,10 @@ function AnimatedRoutes() {
 }
 
 function App() {
+  useEffect(() => {
+    initializeAuthSecurity();
+  }, []);
+
   return (
     <Router>
       <AnimatedRoutes />

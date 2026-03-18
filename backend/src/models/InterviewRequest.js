@@ -29,4 +29,7 @@ const interviewRequestSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+interviewRequestSchema.index({ candidateId: 1, status: 1, createdAt: -1 });
+interviewRequestSchema.index({ status: 1, createdAt: -1 });
+
 export default mongoose.model("InterviewRequest", interviewRequestSchema);

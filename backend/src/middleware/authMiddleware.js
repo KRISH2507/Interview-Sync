@@ -1,47 +1,60 @@
 import jwt from "jsonwebtoken";
 
-import { getRedisClient } from "../config/redis.js";
+import {
+  readAccessToken,
+  readRefreshToken,
+  rotateRefreshToken,
+  setAuthCookies,
+  verifyAccessToken,
+} from "../services/tokenService.js";
+import { sendError } from "../utils/response.js";
 
-const buildSessionKey = (jti) => `auth:session:${jti}`;
-const buildTokenBlacklistKey = (jti) => `auth:blacklist:${jti}`;
+const attachUser = (req, decoded) => {
+  req.user = {
+    id: String(decoded.id),
+    role: String(decoded.role),
+    sessionId: String(decoded.sid),
+  };
+};
 
 export const protect = async (req, res, next) => {
-  let token;
+  const accessToken = readAccessToken(req);
 
-
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer ")
-  ) {
+  if (accessToken) {
     try {
-      token = req.headers.authorization.split(" ")[1];
-
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-      const redis = await getRedisClient();
-      if (redis && decoded.jti) {
-        const isBlacklisted = await redis.get(buildTokenBlacklistKey(decoded.jti));
-        if (isBlacklisted) {
-          return res.status(401).json({ message: "Not authorized, token revoked" });
-        }
-
-        const sessionExists = await redis.get(buildSessionKey(decoded.jti));
-        if (!sessionExists) {
-          return res.status(401).json({ message: "Not authorized, session expired" });
-        }
-      }
-
-      req.user = {
-        id: decoded.id,
-        role: decoded.role,
-        jti: decoded.jti,
-      };
-
+      const decoded = verifyAccessToken(accessToken);
+      attachUser(req, decoded);
       return next();
     } catch (error) {
-      return res.status(401).json({ message: "Not authorized, invalid token" });
+      if (!(error instanceof jwt.TokenExpiredError)) {
+        return sendError(res, 401, "Not authorized");
+      }
     }
   }
 
-  return res.status(401).json({ message: "Not authorized, no token" });
+  const refreshToken = readRefreshToken(req);
+  if (!refreshToken) {
+    return sendError(res, 401, "Not authorized");
+  }
+
+  try {
+    const rotated = await rotateRefreshToken({ refreshToken, req });
+    setAuthCookies(req, res, rotated);
+
+    const decodedAccess = verifyAccessToken(rotated.accessToken);
+    attachUser(req, decodedAccess);
+
+    return next();
+  } catch {
+    return sendError(res, 401, "Not authorized");
+  }
+};
+
+export const requireAdmin = (req, res, next) => {
+  const role = String(req.user?.role || "").toLowerCase();
+  if (role === "admin" || role === "recruiter") {
+    return next();
+  }
+
+  return sendError(res, 403, "Admin access required");
 };

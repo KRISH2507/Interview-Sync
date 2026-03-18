@@ -30,4 +30,7 @@ const interviewRoomSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+interviewRoomSchema.index({ candidateId: 1, createdAt: -1 });
+interviewRoomSchema.index({ interviewerId: 1, createdAt: -1 });
+
 export default mongoose.model("InterviewRoom", interviewRoomSchema);

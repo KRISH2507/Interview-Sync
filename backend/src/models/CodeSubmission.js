@@ -45,4 +45,6 @@ const codeSubmissionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+codeSubmissionSchema.index({ userId: 1, createdAt: -1 });
+
 export default mongoose.model("CodeSubmission", codeSubmissionSchema);

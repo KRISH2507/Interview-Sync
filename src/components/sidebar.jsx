@@ -20,10 +20,7 @@ export function Sidebar({ role, isOpen, onClose }) {
     } catch (error) {
       console.error("Logout request failed:", error);
     }
-    localStorage.removeItem("token");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("userRole");
-    navigate("/");
+    navigate("/auth");
   };
 
   const handleLogoutCancel = () => {
