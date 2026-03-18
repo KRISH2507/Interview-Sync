@@ -15,26 +15,31 @@ import {
   submitInterviewEvaluation,
   getInterviewResultsForCandidate,
   getMyInterviewResults,
+  enqueueInterviewQuestionsJob,
+  getInterviewQuestionsJobStatus,
 } from "../controllers/interviewController.js";
 import { protect } from "../middleware/authMiddleware.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 const router = express.Router();
 
-router.post("/start", protect, startInterview);
-router.post("/submit", protect, submitInterview);
-router.post("/create", protect, createInterviewRoom);
-router.post("/request", protect, requestInterview);
-router.get("/rooms", protect, listInterviewRooms);
-router.get("/room/:roomId", protect, getInterviewRoom);
-router.get("/room/:roomId/draft", protect, getInterviewRoomDraft);
-router.put("/room/:roomId/draft", protect, saveInterviewRoomDraft);
-router.get("/requests", protect, listInterviewRequests);
-router.get("/my-requests", protect, getMyInterviewRequests);
-router.post("/requests/:requestId/start", protect, startInterviewFromRequest);
-router.post("/result", protect, submitInterviewResult);
-router.post("/evaluate", protect, submitInterviewEvaluation);
-router.get("/results", protect, getInterviewResultsForCandidate);
-router.get("/results/:candidateId", protect, getInterviewResultsForCandidate);
-router.get("/my-results", protect, getMyInterviewResults);
+router.post("/start", protect, asyncHandler(startInterview));
+router.post("/start-async", protect, asyncHandler(enqueueInterviewQuestionsJob));
+router.get("/jobs/:jobId", protect, asyncHandler(getInterviewQuestionsJobStatus));
+router.post("/submit", protect, asyncHandler(submitInterview));
+router.post("/create", protect, asyncHandler(createInterviewRoom));
+router.post("/request", protect, asyncHandler(requestInterview));
+router.get("/rooms", protect, asyncHandler(listInterviewRooms));
+router.get("/room/:roomId", protect, asyncHandler(getInterviewRoom));
+router.get("/room/:roomId/draft", protect, asyncHandler(getInterviewRoomDraft));
+router.put("/room/:roomId/draft", protect, asyncHandler(saveInterviewRoomDraft));
+router.get("/requests", protect, asyncHandler(listInterviewRequests));
+router.get("/my-requests", protect, asyncHandler(getMyInterviewRequests));
+router.post("/requests/:requestId/start", protect, asyncHandler(startInterviewFromRequest));
+router.post("/result", protect, asyncHandler(submitInterviewResult));
+router.post("/evaluate", protect, asyncHandler(submitInterviewEvaluation));
+router.get("/results", protect, asyncHandler(getInterviewResultsForCandidate));
+router.get("/results/:candidateId", protect, asyncHandler(getInterviewResultsForCandidate));
+router.get("/my-results", protect, asyncHandler(getMyInterviewResults));
 
 export default router;

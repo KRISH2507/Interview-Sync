@@ -1,15 +1,23 @@
-import crypto from "crypto";
-
 import axios from "axios";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
 import { OAuth2Client } from "google-auth-library";
 
 import User from "../models/User.js";
 import { getRedisClient } from "../config/redis.js";
 import { sendOtpEmail } from "../services/emailService.js";
+import {
+  clearAuthCookies,
+  createSessionTokens,
+  listActiveSessions,
+  readRefreshToken,
+  revokeAllUserSessions,
+  revokeRefreshSessionByToken,
+  revokeSessionById,
+  setAuthCookies,
+  rotateRefreshToken,
+} from "../services/tokenService.js";
+import { sendError, sendSuccess } from "../utils/response.js";
 
-const TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
 const OTP_TTL_SECONDS = 10 * 60;
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
 const OTP_MAX_ATTEMPTS = 10;
@@ -17,8 +25,6 @@ const OTP_MAX_ATTEMPTS = 10;
 const OTP_KEY_PREFIX = "auth:otp:register";
 const OTP_ATTEMPT_PREFIX = "auth:otp:attempts";
 const OTP_COOLDOWN_PREFIX = "auth:otp:cooldown";
-const SESSION_PREFIX = "auth:session";
-const TOKEN_BLACKLIST_PREFIX = "auth:blacklist";
 
 const GOOGLE_OAUTH_SCOPES = ["email", "profile"];
 
@@ -33,8 +39,6 @@ const normalizeUserRole = (role) => {
 const buildOtpKey = (email) => `${OTP_KEY_PREFIX}:${email}`;
 const buildOtpAttemptKey = (email) => `${OTP_ATTEMPT_PREFIX}:${email}`;
 const buildOtpCooldownKey = (email) => `${OTP_COOLDOWN_PREFIX}:${email}`;
-const buildSessionKey = (jti) => `${SESSION_PREFIX}:${jti}`;
-const buildTokenBlacklistKey = (jti) => `${TOKEN_BLACKLIST_PREFIX}:${jti}`;
 
 const parseOrigin = (value) => {
   try {
@@ -83,6 +87,7 @@ const resolveFrontendOrigin = (req, preferredOrigin) => {
   const normalizedPreferred = String(preferredOrigin || "").trim();
   const requestOrigin = String(req.headers.origin || "").trim();
   const refererOrigin = parseOrigin(req.headers.referer);
+
   const accepts = (origin) => {
     if (!origin) {
       return false;
@@ -149,63 +154,26 @@ const buildFrontendAuthRedirect = (req, queryParams = {}, preferredOrigin) => {
   return redirectUrl.toString();
 };
 
-const getTokenLifetimeSeconds = (decodedToken) => {
-  if (!decodedToken?.exp) {
-    return TOKEN_TTL_SECONDS;
-  }
+const serializeUser = (user) => ({
+  id: user._id,
+  name: user.name,
+  email: user.email,
+  role: normalizeUserRole(user.role),
+});
 
-  return Math.max(decodedToken.exp - Math.floor(Date.now() / 1000), 1);
-};
+const sendAuthPayload = async (req, res, user, message, statusCode = 200) => {
+  const tokens = await createSessionTokens({ user, req });
+  const safeUser = serializeUser(user);
+  setAuthCookies(req, res, tokens);
 
-const issueToken = (id, role = "candidate") => {
-  const safeRole = normalizeUserRole(role);
-  const jti = crypto.randomUUID();
-  const token = jwt.sign({ id, role: safeRole, jti }, process.env.JWT_SECRET, {
-    expiresIn: "7d",
+  return sendSuccess(res, statusCode, message, {
+    user: safeUser,
+    accessToken: tokens.accessToken,
+    sessionId: tokens.sessionId,
+  }, {
+    token: tokens.accessToken,
+    user: safeUser,
   });
-
-  return { token, jti };
-};
-
-const persistActiveSession = async (jti, user) => {
-  const redis = await getRedisClient();
-  if (!redis || !jti) {
-    return;
-  }
-
-  await redis.set(
-    buildSessionKey(jti),
-    JSON.stringify({
-      userId: String(user._id),
-      role: user.role,
-    }),
-    { EX: TOKEN_TTL_SECONDS }
-  );
-};
-
-const sendAuthResponse = async (res, user, statusCode = 200) => {
-  const safeRole = normalizeUserRole(user.role);
-  user.role = safeRole;
-  const { token, jti } = issueToken(user._id, safeRole);
-  await persistActiveSession(jti, user);
-
-  return res.status(statusCode).json({
-    token,
-    user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    },
-  });
-};
-
-const getBearerToken = (req) => {
-  if (req.headers.authorization?.startsWith("Bearer ")) {
-    return req.headers.authorization.split(" ")[1];
-  }
-
-  return "";
 };
 
 const validateRegistrationPayload = ({ name, email, password }) => {
@@ -232,35 +200,22 @@ const validateRegistrationPayload = ({ name, email, password }) => {
 export const sendRegistrationOtp = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
-    const requestId = crypto.randomUUID();
-    const requestIp = req.headers["x-forwarded-for"] || req.ip || "unknown";
     const normalizedRole = normalizeUserRole(role);
-
-    console.log("[auth/send-otp] request", {
-      requestId,
-      email: normalizeEmail(email),
-      role: normalizedRole,
-      ip: requestIp,
-    });
 
     const validationMessage = validateRegistrationPayload({ name, email, password });
     if (validationMessage) {
-      console.warn("[auth/send-otp] validation failed", {
-        requestId,
-        message: validationMessage,
-      });
-      return res.status(400).json({ message: validationMessage });
+      return sendError(res, 400, validationMessage);
     }
 
     const normalizedEmail = normalizeEmail(email);
     const existingUser = await User.findOne({ email: normalizedEmail }).lean();
     if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
+      return sendError(res, 400, "User already exists");
     }
 
     const redis = await getRedisClient();
     if (!redis) {
-      return res.status(503).json({ message: "OTP service is temporarily unavailable" });
+      return sendError(res, 503, "OTP service is temporarily unavailable");
     }
 
     const cooldownKey = buildOtpCooldownKey(normalizedEmail);
@@ -271,9 +226,11 @@ export const sendRegistrationOtp = async (req, res) => {
 
     if (!cooldownSet) {
       const retryAfter = await redis.ttl(cooldownKey);
-      return res.status(429).json({
-        message: `Please wait ${Math.max(retryAfter, 1)} seconds before requesting another OTP`,
-      });
+      return sendError(
+        res,
+        429,
+        `Please wait ${Math.max(retryAfter, 1)} seconds before requesting another OTP`
+      );
     }
 
     const otp = String(Math.floor(100000 + Math.random() * 900000));
@@ -298,12 +255,6 @@ export const sendRegistrationOtp = async (req, res) => {
         otp,
       });
     } catch (error) {
-      console.error("[auth/send-otp] email send failed", {
-        requestId,
-        email: normalizedEmail,
-        error: error.response?.data || error.message || String(error),
-      });
-
       await redis.del(buildOtpKey(normalizedEmail));
       await redis.del(cooldownKey);
 
@@ -312,33 +263,36 @@ export const sendRegistrationOtp = async (req, res) => {
         rawErrorMessage.includes("API access from non-browser environments") ||
         rawErrorMessage.includes("non-browser environments is currently disabled");
 
-      return res.status(502).json({
-        message: isEmailJsSecurityBlock
+      return sendError(
+        res,
+        502,
+        isEmailJsSecurityBlock
           ? "EmailJS is blocking server API access. Enable it in EmailJS dashboard > Account > Security."
           : "Failed to send OTP email",
-        error: error.response?.data || error.message,
-        hint: isEmailJsSecurityBlock
-          ? "Enable 'API access from non-browser environments' and allow both localhost and deployed frontend origins in EmailJS security settings."
-          : undefined,
-      });
+        {
+          error: error.response?.data || error.message,
+          hint: isEmailJsSecurityBlock
+            ? "Enable API access from non-browser environments and allow localhost/deployed frontend origins in EmailJS security settings."
+            : undefined,
+        }
+      );
     }
 
-    console.log("[auth/send-otp] OTP sent", {
-      requestId,
-      email: normalizedEmail,
-    });
-
-    return res.json({
-      message: "OTP sent successfully",
-      expiresIn: OTP_TTL_SECONDS,
-      resendAfter: OTP_RESEND_COOLDOWN_SECONDS,
-    });
+    return sendSuccess(
+      res,
+      200,
+      "OTP sent successfully",
+      {
+        expiresIn: OTP_TTL_SECONDS,
+        resendAfter: OTP_RESEND_COOLDOWN_SECONDS,
+      },
+      {
+        expiresIn: OTP_TTL_SECONDS,
+        resendAfter: OTP_RESEND_COOLDOWN_SECONDS,
+      }
+    );
   } catch (error) {
-    console.error("[auth/send-otp] unexpected error", {
-      error: error?.message || String(error),
-      stack: error?.stack,
-    });
-    return res.status(500).json({ message: "Failed to send OTP" });
+    return sendError(res, 500, "Failed to send OTP");
   }
 };
 
@@ -348,21 +302,21 @@ export const register = async (req, res) => {
     const normalizedEmail = normalizeEmail(email);
 
     if (!normalizedEmail) {
-      return res.status(400).json({ message: "Email is required" });
+      return sendError(res, 400, "Email is required");
     }
 
     if (!otp || String(otp).trim().length !== 6) {
-      return res.status(400).json({ message: "A valid 6-digit OTP is required" });
+      return sendError(res, 400, "A valid 6-digit OTP is required");
     }
 
     const redis = await getRedisClient();
     if (!redis) {
-      return res.status(503).json({ message: "OTP service is temporarily unavailable" });
+      return sendError(res, 503, "OTP service is temporarily unavailable");
     }
 
     const storedOtpPayload = await redis.get(buildOtpKey(normalizedEmail));
     if (!storedOtpPayload) {
-      return res.status(400).json({ message: "OTP expired or not found. Please request a new OTP." });
+      return sendError(res, 400, "OTP expired or not found. Please request a new OTP.");
     }
 
     const attemptKey = buildOtpAttemptKey(normalizedEmail);
@@ -372,26 +326,26 @@ export const register = async (req, res) => {
     }
 
     if (attempts > OTP_MAX_ATTEMPTS) {
-      return res.status(429).json({ message: "Too many invalid OTP attempts. Please request a new OTP." });
+      return sendError(res, 429, "Too many invalid OTP attempts. Please request a new OTP.");
     }
 
     const payload = JSON.parse(storedOtpPayload);
     if (String(payload.otp) !== String(otp).trim()) {
-      return res.status(400).json({ message: "Invalid OTP" });
+      return sendError(res, 400, "Invalid OTP");
     }
 
     const existingUser = await User.findOne({ email: normalizedEmail }).lean();
     if (existingUser) {
       await redis.del(buildOtpKey(normalizedEmail));
       await redis.del(attemptKey);
-      return res.status(400).json({ message: "User already exists" });
+      return sendError(res, 400, "User already exists");
     }
 
     const user = await User.create({
       name: payload.name,
       email: payload.email,
       password: payload.passwordHash,
-      role: payload.role,
+      role: normalizeUserRole(payload.role),
       provider: "local",
     });
 
@@ -399,10 +353,9 @@ export const register = async (req, res) => {
     await redis.del(attemptKey);
     await redis.del(buildOtpCooldownKey(normalizedEmail));
 
-    return sendAuthResponse(res, user, 201);
-  } catch (error) {
-    console.error("register error:", error);
-    return res.status(500).json({ message: "Registration failed" });
+    return sendAuthPayload(req, res, user, "Registration successful", 201);
+  } catch {
+    return sendError(res, 500, "Registration failed");
   }
 };
 
@@ -412,55 +365,118 @@ export const login = async (req, res) => {
     const { password } = req.body;
 
     if (!normalizedEmail || !password) {
-      return res.status(400).json({ message: "Email and password are required" });
+      return sendError(res, 400, "Email and password are required");
     }
 
     const user = await User.findOne({ email: normalizedEmail });
     if (!user || user.provider !== "local") {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return sendError(res, 400, "Invalid credentials");
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return sendError(res, 400, "Invalid credentials");
     }
 
-    return sendAuthResponse(res, user);
-  } catch (error) {
-    console.error("login error:", error);
-    return res.status(500).json({ message: "Login failed" });
+    return sendAuthPayload(req, res, user, "Login successful");
+  } catch {
+    return sendError(res, 500, "Login failed");
+  }
+};
+
+export const refreshToken = async (req, res) => {
+  try {
+    const refresh = readRefreshToken(req);
+    if (!refresh) {
+      return sendError(res, 401, "Refresh token is required");
+    }
+
+    const rotated = await rotateRefreshToken({ refreshToken: refresh, req });
+    setAuthCookies(req, res, rotated);
+
+    return sendSuccess(
+      res,
+      200,
+      "Access token refreshed",
+      {
+        accessToken: rotated.accessToken,
+        sessionId: rotated.sessionId,
+      },
+      {
+        token: rotated.accessToken,
+      }
+    );
+  } catch {
+    return sendError(res, 401, "Invalid or expired refresh token");
   }
 };
 
 export const logout = async (req, res) => {
   try {
-    const token = getBearerToken(req);
-    if (!token) {
-      return res.json({ message: "Logged out" });
+    const refresh = readRefreshToken(req);
+    if (refresh) {
+      await revokeRefreshSessionByToken(refresh, "logout");
     }
 
-    const decodedToken = jwt.decode(token);
-    const redis = await getRedisClient();
-    if (redis && decodedToken?.jti) {
-      const ttl = getTokenLifetimeSeconds(decodedToken);
-      await redis.set(buildTokenBlacklistKey(decodedToken.jti), "1", { EX: ttl });
-      await redis.del(buildSessionKey(decodedToken.jti));
+    clearAuthCookies(req, res);
+    return sendSuccess(res, 200, "Logged out");
+  } catch {
+    return sendError(res, 500, "Logout failed");
+  }
+};
+
+export const logoutAll = async (req, res) => {
+  try {
+    await revokeAllUserSessions(req.user.id, "logout_all");
+    clearAuthCookies(req, res);
+    return sendSuccess(res, 200, "Logged out from all sessions");
+  } catch {
+    return sendError(res, 500, "Logout all failed");
+  }
+};
+
+export const revokeSession = async (req, res) => {
+  try {
+    const sessionId = String(req.params.sessionId || "").trim();
+    if (!sessionId) {
+      return sendError(res, 400, "sessionId is required");
     }
 
-    return res.json({ message: "Logged out" });
-  } catch (error) {
-    console.error("logout error:", error);
-    return res.status(500).json({ message: "Logout failed" });
+    const revoked = await revokeSessionById({
+      userId: req.user.id,
+      sessionId,
+      reason: "manual_revoke",
+    });
+
+    if (!revoked) {
+      return sendError(res, 404, "Session not found");
+    }
+
+    return sendSuccess(res, 200, "Session revoked", { sessionId });
+  } catch {
+    return sendError(res, 500, "Failed to revoke session");
+  }
+};
+
+export const getMySessions = async (req, res) => {
+  try {
+    const sessions = await listActiveSessions(req.user.id);
+    return sendSuccess(res, 200, "Active sessions fetched", { sessions });
+  } catch {
+    return sendError(res, 500, "Failed to fetch sessions");
   }
 };
 
 export const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
-    return res.json(user);
-  } catch (error) {
-    console.error("getMe error:", error);
-    return res.status(500).json({ message: "Failed to fetch user" });
+    if (!user) {
+      return sendError(res, 404, "User not found");
+    }
+
+    return sendSuccess(res, 200, "Profile fetched", { user: serializeUser(user) });
+  } catch {
+    return sendError(res, 500, "Failed to fetch user");
   }
 };
 
@@ -487,31 +503,24 @@ export const googleLogin = async (req, res) => {
       });
     }
 
-    return sendAuthResponse(res, user);
-  } catch (error) {
-    console.error("Google login error:", error);
-    return res.status(401).json({ message: "Google authentication failed" });
+    return sendAuthPayload(req, res, user, "Google login successful");
+  } catch {
+    return sendError(res, 401, "Google authentication failed");
   }
 };
 
 export const startGoogleOAuth = async (req, res) => {
   try {
-    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET || !process.env.GOOGLE_REDIRECT_URI) {
-      return res.status(500).json({ message: "Google OAuth server configuration is incomplete" });
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      return sendError(res, 500, "Google OAuth server configuration is incomplete");
     }
 
     const preferredFrontendOrigin = String(req.query.frontend_origin || "").trim();
-    const frontendOrigin = preferredFrontendOrigin || String(process.env.FRONTEND_URL || "").trim();
-    const redirectUri = String(process.env.GOOGLE_REDIRECT_URI || "").trim();
+    const redirectUri = resolveGoogleRedirectUri(req, String(req.query.redirect_uri || "").trim());
 
-    console.log("[auth/google] start route hit", {
-      preferredFrontendOrigin,
-      resolvedFrontendOrigin: frontendOrigin,
-      requestOrigin: req.headers.origin,
-      requestHost: req.get("host"),
-    });
-
-    console.log("[auth/google] redirect URI", { redirectUri });
+    if (!redirectUri) {
+      return sendError(res, 500, "Unable to resolve Google redirect URI");
+    }
 
     const oauthClient = new OAuth2Client(
       process.env.GOOGLE_CLIENT_ID,
@@ -519,7 +528,10 @@ export const startGoogleOAuth = async (req, res) => {
       redirectUri
     );
 
-    const statePayload = Buffer.from(JSON.stringify({ frontendOrigin, redirectUri }), "utf8").toString("base64url");
+    const statePayload = Buffer.from(
+      JSON.stringify({ frontendOrigin: preferredFrontendOrigin, redirectUri }),
+      "utf8"
+    ).toString("base64url");
 
     const authUrl = oauthClient.generateAuthUrl({
       access_type: "offline",
@@ -529,9 +541,8 @@ export const startGoogleOAuth = async (req, res) => {
     });
 
     return res.redirect(authUrl);
-  } catch (error) {
-    console.error("Google OAuth start error:", error);
-    return res.status(500).json({ message: "Failed to start Google OAuth" });
+  } catch {
+    return sendError(res, 500, "Failed to start Google OAuth");
   }
 };
 
@@ -556,17 +567,17 @@ export const googleOAuthCallback = async (req, res) => {
   const statePayload = getStatePayload();
 
   const redirectWithError = (message) => {
-    const fallbackFrontendUrl = String(process.env.FRONTEND_URL || "").trim();
-    const frontendOrigin = statePayload.frontendOrigin || fallbackFrontendUrl;
-    const redirectUrl = frontendOrigin
-      ? `${frontendOrigin.replace(/\/$/, "")}/auth?google_error=${encodeURIComponent(message || "Google authentication failed")}`
-      : "";
+    const errorRedirect = buildFrontendAuthRedirect(
+      req,
+      { google_error: message || "Google authentication failed" },
+      statePayload.frontendOrigin
+    );
 
-    if (redirectUrl) {
-      return res.redirect(redirectUrl);
+    if (errorRedirect) {
+      return res.redirect(errorRedirect);
     }
 
-    return res.status(401).json({ message: message || "Google authentication failed" });
+    return sendError(res, 401, message || "Google authentication failed");
   };
 
   try {
@@ -575,16 +586,10 @@ export const googleOAuthCallback = async (req, res) => {
       return redirectWithError("Google callback did not return code");
     }
 
-    const redirectUri = String(process.env.GOOGLE_REDIRECT_URI || statePayload.redirectUri || "").trim();
+    const redirectUri = resolveGoogleRedirectUri(req, statePayload.redirectUri);
     if (!redirectUri) {
       return redirectWithError("Unable to resolve Google callback URI");
     }
-
-    console.log("[auth/google/callback] callback hit", {
-      hasCode: Boolean(code),
-      redirectUri,
-      resolvedFrontendOrigin: statePayload.frontendOrigin,
-    });
 
     const oauthClient = new OAuth2Client(
       process.env.GOOGLE_CLIENT_ID,
@@ -596,6 +601,7 @@ export const googleOAuthCallback = async (req, res) => {
       code,
       redirect_uri: redirectUri,
     });
+
     if (!tokens?.access_token) {
       return redirectWithError("Google OAuth token exchange failed");
     }
@@ -625,33 +631,40 @@ export const googleOAuthCallback = async (req, res) => {
       });
     }
 
+    const tokensPayload = await createSessionTokens({ user, req });
     const safeRole = normalizeUserRole(user.role);
-    user.role = safeRole;
+    setAuthCookies(req, res, tokensPayload);
 
-    const { token, jti } = issueToken(user._id, safeRole);
-    await persistActiveSession(jti, user);
-
-    const fallbackFrontendUrl = String(process.env.FRONTEND_URL || "").trim();
-    const frontendOrigin = statePayload.frontendOrigin || fallbackFrontendUrl;
-    const successRedirectUrl = frontendOrigin
-      ? `${frontendOrigin.replace(/\/$/, "")}/auth?token=${encodeURIComponent(token)}&userId=${encodeURIComponent(String(user._id))}&role=${encodeURIComponent(safeRole)}`
-      : "";
+    const successRedirectUrl = buildFrontendAuthRedirect(
+      req,
+      {
+        token: tokensPayload.accessToken,
+        userId: String(user._id),
+        role: safeRole,
+      },
+      statePayload.frontendOrigin
+    );
 
     if (successRedirectUrl) {
       return res.redirect(successRedirectUrl);
     }
 
-    return res.json({
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: safeRole,
+    const safeUser = serializeUser(user);
+    return sendSuccess(
+      res,
+      200,
+      "Google login successful",
+      {
+        user: safeUser,
+        accessToken: tokensPayload.accessToken,
+        sessionId: tokensPayload.sessionId,
       },
-    });
-  } catch (error) {
-    console.error("Google OAuth callback error:", error);
+      {
+        token: tokensPayload.accessToken,
+        user: safeUser,
+      }
+    );
+  } catch {
     return redirectWithError("Google authentication failed");
   }
 };

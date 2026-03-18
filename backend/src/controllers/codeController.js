@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 import CodeSubmission from "../models/CodeSubmission.js";
 import CodingAttempt from "../models/CodingAttempt.js";
 import vm from "vm";
+import { sendError, sendSuccess } from "../utils/response.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -335,15 +336,15 @@ export const getRandomCodeQuestion = async (req, res) => {
     const randomQuestion = getPublicRandomCodeQuestion(difficulty);
 
     if (!randomQuestion) {
-      return res.status(404).json({ message: "No coding questions found for selected difficulty" });
+      return sendError(res, 404, "No coding questions found for selected difficulty");
     }
 
-    res.json({
+    return sendSuccess(res, 200, "Coding question fetched", {
       question: randomQuestion,
     });
   } catch (err) {
     console.error("getRandomCodeQuestion error:", err);
-    res.status(500).json({ message: "Failed to fetch coding question", error: err.message });
+    return sendError(res, 500, "Failed to fetch coding question", { error: err.message });
   }
 };
 
@@ -352,19 +353,19 @@ export const runCode = async (req, res) => {
     const { code, language, input } = req.body;
 
     if (!code || !language) {
-      return res.status(400).json({ message: "code and language are required" });
+      return sendError(res, 400, "code and language are required");
     }
 
     const result = await executeCode({ code, language, input });
 
-    res.json({
+    return sendSuccess(res, 200, "Code executed", {
       output: result.output,
       executionOutput: result.output,
       runtime: result.runtime,
     });
   } catch (err) {
     console.error("runCode error:", err?.response?.data || err);
-    res.status(500).json({ error: "Execution failed", details: err.message });
+    return sendError(res, 500, "Execution failed", { details: err.message });
   }
 };
 
@@ -374,19 +375,19 @@ export const submitCode = async (req, res) => {
     const { questionId, code, language } = req.body;
 
     if (!questionId || !code || !language) {
-      return res.status(400).json({ message: "questionId, code and language are required" });
+      return sendError(res, 400, "questionId, code and language are required");
     }
 
     const questions = loadCodeQuestions();
     const question = questions.find((q) => String(q.id) === String(questionId));
 
     if (!question) {
-      return res.status(404).json({ message: "Question not found" });
+      return sendError(res, 404, "Question not found");
     }
 
     const testCases = Array.isArray(question.testCases) ? question.testCases : [];
     if (testCases.length === 0) {
-      return res.status(400).json({ message: "No test cases configured for this question" });
+      return sendError(res, 400, "No test cases configured for this question");
     }
 
     const startedAt = Date.now();
@@ -468,7 +469,7 @@ export const submitCode = async (req, res) => {
       runtime: totalRuntime,
     });
 
-    res.json({
+    return sendSuccess(res, 200, "Code submitted", {
       results,
       passedCount,
       totalCount,
@@ -480,6 +481,6 @@ export const submitCode = async (req, res) => {
     });
   } catch (err) {
     console.error("submitCode error:", err?.response?.data || err);
-    res.status(500).json({ message: "Failed to submit code", error: err.message });
+    return sendError(res, 500, "Failed to submit code", { error: err.message });
   }
 };

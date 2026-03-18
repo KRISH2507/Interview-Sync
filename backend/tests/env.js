@@ -1,0 +1,10 @@
+process.env.NODE_ENV = "test";
+process.env.AUTH_COOKIE_SECURE = "false";
+process.env.JWT_SECRET = process.env.JWT_SECRET || "test_jwt_secret_123";
+process.env.ACCESS_TOKEN_TTL = "15m";
+process.env.REFRESH_TOKEN_TTL = "7d";
+process.env.ACCESS_TOKEN_COOKIE_NAME = "accessToken";
+process.env.REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
+process.env.AUTH_COOKIE_DOMAIN = "";
+process.env.FRONTEND_URL = "http://localhost:5173";
+process.env.FRONTEND_URLS = "http://localhost:5173";

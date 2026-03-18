@@ -44,4 +44,7 @@ const interviewResultSchema = new mongoose.Schema(
   { timestamps: false }
 );
 
+interviewResultSchema.index({ candidateId: 1, createdAt: -1 });
+interviewResultSchema.index({ roomId: 1, createdAt: -1 });
+
 export default mongoose.model("InterviewResult", interviewResultSchema);

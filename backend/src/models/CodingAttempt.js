@@ -41,4 +41,6 @@ const codingAttemptSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+codingAttemptSchema.index({ userId: 1, createdAt: -1 });
+
 export default mongoose.model("CodingAttempt", codingAttemptSchema);

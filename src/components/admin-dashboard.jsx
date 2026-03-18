@@ -1,23 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "./dashboard-layout";
 import { Button } from "./ui/button";
-import { createInterviewRoom } from "../services/api";
+import { createInterviewRoom, getCurrentUser } from "../services/api";
 import { useTheme } from "../contexts/theme-context";
-
-function decodeTokenUserId() {
-  try {
-    const token = localStorage.getItem("token");
-    if (!token) return "";
-    const payload = token.split(".")[1];
-    if (!payload) return "";
-    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const json = JSON.parse(atob(normalized));
-    return json?.id || "";
-  } catch {
-    return "";
-  }
-}
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -31,7 +17,30 @@ export default function AdminDashboard() {
   const [candidateId, setCandidateId] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
-  const interviewerId = decodeTokenUserId();
+  const [interviewerId, setInterviewerId] = useState("");
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadCurrentUser = async () => {
+      try {
+        const user = await getCurrentUser();
+        if (mounted) {
+          setInterviewerId(String(user?.id || ""));
+        }
+      } catch {
+        if (mounted) {
+          setInterviewerId("");
+        }
+      }
+    };
+
+    loadCurrentUser();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleCreateRoom = async (event) => {
     event.preventDefault();

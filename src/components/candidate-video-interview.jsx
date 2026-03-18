@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import DashboardLayout from "./dashboard-layout";
 import { Button } from "./ui/button";
-import { getInterviewRooms, getMyInterviewRequests, requestInterview } from "../services/api";
+import { getCurrentUser, getInterviewRooms, getMyInterviewRequests, requestInterview } from "../services/api";
 import { useTheme } from "../contexts/theme-context";
 
 export default function CandidateVideoInterview() {
@@ -12,7 +12,7 @@ export default function CandidateVideoInterview() {
   const borderColor = isDark ? "#334155" : "#E2E8F0";
   const textPrimary = isDark ? "#F1F5F9" : "#0F172A";
   const textSecondary = isDark ? "#CBD5E1" : "#475569";
-  const candidateId = localStorage.getItem("userId") || "Not available";
+  const [candidateId, setCandidateId] = useState("Not available");
 
   const [requests, setRequests] = useState([]);
   const [rooms, setRooms] = useState([]);
@@ -38,6 +38,20 @@ export default function CandidateVideoInterview() {
   };
 
   useEffect(() => {
+    let mounted = true;
+
+    getCurrentUser()
+      .then((user) => {
+        if (mounted) {
+          setCandidateId(user?.id || "Not available");
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setCandidateId("Not available");
+        }
+      });
+
     loadRequests();
     
     // Auto-refresh every 2 seconds to detect when recruiter accepts request
@@ -45,7 +59,10 @@ export default function CandidateVideoInterview() {
       loadRequests();
     }, 2000);
     
-    return () => clearInterval(interval);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   const activeScheduledRequest = useMemo(

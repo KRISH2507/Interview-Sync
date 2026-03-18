@@ -56,25 +56,139 @@ const validateSendOtpPayload = (payload = {}) => {
 
 const api = axios.create({
   baseURL: getApiBaseUrl(),
+  withCredentials: true,
   headers: {
     Accept: "application/json",
     "Content-Type": "application/json",
   },
 });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+const isAuthRefreshRoute = (url = "") => String(url).includes("/auth/refresh-token");
+const isAuthLoginRoute = (url = "") => String(url).includes("/auth/login");
+const isCsrfTokenRoute = (url = "") => String(url).includes("/auth/csrf-token");
+const MUTATING_METHODS = new Set(["post", "put", "patch", "delete"]);
+
+let refreshPromise = null;
+let csrfTokenInMemory = "";
+let csrfPromise = null;
+
+const refreshAccessToken = async () => {
+  if (!refreshPromise) {
+    refreshPromise = axios
+      .post(`${getApiBaseUrl()}/auth/refresh-token`, {}, { withCredentials: true })
+      .finally(() => {
+        refreshPromise = null;
+      });
   }
+
+  return refreshPromise;
+};
+
+const setCsrfToken = (token) => {
+  csrfTokenInMemory = String(token || "").trim();
+  return csrfTokenInMemory;
+};
+
+export const getCsrfToken = () => csrfTokenInMemory;
+
+export const fetchCsrfToken = async ({ force = false } = {}) => {
+  if (!force && csrfTokenInMemory) {
+    return csrfTokenInMemory;
+  }
+
+  if (!csrfPromise) {
+    csrfPromise = api
+      .get("/auth/csrf-token")
+      .then((res) => {
+        const token =
+          res?.data?.data?.csrfToken ||
+          res?.data?.csrfToken ||
+          "";
+        return setCsrfToken(token);
+      })
+      .finally(() => {
+        csrfPromise = null;
+      });
+  }
+
+  return csrfPromise;
+};
+
+export const initializeAuthSecurity = async () => {
+  try {
+    await fetchCsrfToken();
+  } catch {
+    return;
+  }
+};
+
+api.interceptors.request.use(async (config) => {
+  const method = String(config?.method || "get").toLowerCase();
+  const isMutating = MUTATING_METHODS.has(method);
+  const isCsrfRequest = isCsrfTokenRoute(config?.url);
+
+  if (!isMutating || isCsrfRequest) {
+    return config;
+  }
+
+  if (!csrfTokenInMemory) {
+    await fetchCsrfToken();
+  }
+
+  if (!config.headers) {
+    config.headers = {};
+  }
+
+  if (csrfTokenInMemory) {
+    config.headers["X-CSRF-Token"] = csrfTokenInMemory;
+  }
+
   return config;
 });
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error?.config || {};
     const status = error?.response?.status;
     const message = error?.response?.data?.message || error?.message || "Request failed";
+    const responseCode = String(error?.response?.data?.code || "");
+
+    if (
+      status === 403 &&
+      responseCode === "EBADCSRFTOKEN" &&
+      !originalRequest?._csrfRetry &&
+      !isCsrfTokenRoute(originalRequest?.url)
+    ) {
+      originalRequest._csrfRetry = true;
+      await fetchCsrfToken({ force: true });
+
+      if (!originalRequest.headers) {
+        originalRequest.headers = {};
+      }
+
+      if (csrfTokenInMemory) {
+        originalRequest.headers["X-CSRF-Token"] = csrfTokenInMemory;
+      }
+
+      return api(originalRequest);
+    }
+
+    if (
+      status === 401 &&
+      !originalRequest?._retry &&
+      !isAuthRefreshRoute(originalRequest?.url) &&
+      !isAuthLoginRoute(originalRequest?.url)
+    ) {
+      originalRequest._retry = true;
+      try {
+        await refreshAccessToken();
+        return api(originalRequest);
+      } catch {
+        return Promise.reject(error);
+      }
+    }
+
     console.error("[API] Request failed", {
       url: error?.config?.url,
       method: error?.config?.method,
@@ -168,7 +282,24 @@ export const sendRegistrationOtp = (payload) =>
 export const verifyRegistrationOtp = ({ email, otp }) =>
   api.post("/auth/register", { email, otp });
 
+export const loginUser = ({ email, password }) =>
+  api.post("/auth/login", { email, password });
+
+export const refreshAuthToken = () =>
+  api.post("/auth/refresh-token");
+
+export const getCurrentUser = async () => {
+  const res = await api.get("/auth/me");
+  return res?.data?.data?.user || res?.data?.user || null;
+};
+
 export const logoutUser = () =>
   api.post("/auth/logout");
+
+export const logoutAllSessions = () =>
+  api.post("/auth/logout-all");
+
+export const getApiErrorMessage = (error, fallback = "Request failed") =>
+  error?.response?.data?.message || error?.response?.data?.error || error?.message || fallback;
 
 export default api;

@@ -3,6 +3,8 @@ import app from "./app.js";
 import { connectDB } from "./config/db.js";
 import { createServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
+import { startAiWorker } from "./workers/aiWorker.js";
+import { startEmailWorker } from "./workers/emailWorker.js";
 
 const PORT = process.env.PORT || 5000;
 const httpServer = createServer(app);
@@ -37,6 +39,12 @@ io.on("connection", (socket) => {
 });
 
 connectDB().then(() => {
+  const runWorkers = String(process.env.RUN_BACKGROUND_WORKERS || "false").toLowerCase() === "true";
+  if (runWorkers) {
+    startAiWorker();
+    startEmailWorker();
+  }
+
   httpServer.on("error", (error) => {
     if (error?.code === "EADDRINUSE") {
       console.error(`Port ${PORT} is already in use. Stop the existing process and restart.`);

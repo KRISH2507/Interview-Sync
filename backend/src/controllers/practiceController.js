@@ -2,6 +2,7 @@ import DSAQuestion from "../models/DSAQuestion.js";
 import PracticeSession from "../models/PracticeSession.js";
 import { sampleQuestions } from "../utils/questionLoader.js";
 import { invalidateDashboardCache } from "../utils/cache.js";
+import { sendError, sendSuccess } from "../utils/response.js";
 
 /**
  * Fetch 5 DSA questions: MongoDB if ≥5 docs exist, otherwise fall back to local JSON.
@@ -62,13 +63,13 @@ export const startPractice = async (req, res) => {
             category: q.category,
         }));
 
-        res.status(201).json({
+        return sendSuccess(res, 201, "Practice session started", {
             sessionId: session._id,
             questions: publicQuestions,
         });
     } catch (err) {
         console.error("startPractice error:", err);
-        res.status(500).json({ message: "Failed to start practice session", error: err.message });
+        return sendError(res, 500, "Failed to start practice session", { error: err.message });
     }
 };
 
@@ -77,16 +78,16 @@ export const submitPractice = async (req, res) => {
         const { sessionId, answers } = req.body;
 
         if (!sessionId || !Array.isArray(answers)) {
-            return res.status(400).json({ message: "sessionId and answers are required" });
+            return sendError(res, 400, "sessionId and answers are required");
         }
 
         const session = await PracticeSession.findById(sessionId);
         if (!session) {
-            return res.status(404).json({ message: "Practice session not found" });
+            return sendError(res, 404, "Practice session not found");
         }
 
         if (session.status === "completed") {
-            return res.status(400).json({ message: "Session already submitted" });
+            return sendError(res, 400, "Session already submitted");
         }
 
         let correctCount = 0;
@@ -114,8 +115,7 @@ export const submitPractice = async (req, res) => {
 
         await invalidateDashboardCache(session.userId);
 
-        res.json({
-            message: "Practice session completed",
+        return sendSuccess(res, 200, "Practice session completed", {
             score: scorePercent,
             correctAnswers: correctCount,
             totalQuestions,
@@ -123,6 +123,6 @@ export const submitPractice = async (req, res) => {
         });
     } catch (err) {
         console.error("submitPractice error:", err);
-        res.status(500).json({ message: "Failed to submit practice session", error: err.message });
+        return sendError(res, 500, "Failed to submit practice session", { error: err.message });
     }
 };

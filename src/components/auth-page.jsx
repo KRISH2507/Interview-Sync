@@ -2,7 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
-import api, { sendRegistrationOtp, verifyRegistrationOtp } from "../services/api";
+import {
+  getApiErrorMessage,
+  getCurrentUser,
+  getGoogleOAuthStartUrl,
+  loginUser,
+  sendRegistrationOtp,
+  verifyRegistrationOtp,
+} from "../services/api";
 import { useTheme } from "../contexts/theme-context";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -34,6 +41,7 @@ export default function AuthPage() {
   const [formError, setFormError] = useState("");
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState("");
+  const [authChecking, setAuthChecking] = useState(true);
 
   // OTP state
   const [otpStep, setOtpStep] = useState(false);
@@ -54,31 +62,67 @@ export default function AuthPage() {
   const textSecondary = isDark ? "#CBD5E1" : "#475569";
 
   useEffect(() => {
+    let mounted = true;
+
+    const finishWithRedirect = async (fallbackRole = "") => {
+      try {
+        const user = await getCurrentUser();
+        if (!mounted || !user) return;
+        navigate(getRedirectRouteByRole(user.role), { replace: true });
+      } catch {
+        if (!mounted) return;
+        if (fallbackRole) {
+          navigate(getRedirectRouteByRole(fallbackRole), { replace: true });
+        }
+      }
+    };
+
+    const run = async () => {
+      setAuthChecking(true);
+
     const params = new URLSearchParams(window.location.search);
-    const token = params.get("token");
     const roleFromQuery = params.get("role");
-    const userIdFromQuery = params.get("userId");
     const googleErrorFromQuery = params.get("google_error");
+    const hasGoogleCallbackQuery =
+      params.has("token") || params.has("userId") || params.has("role") || params.has("google_error");
 
     if (googleErrorFromQuery) {
       setGoogleError(googleErrorFromQuery);
       window.history.replaceState({}, "", window.location.pathname);
+      if (mounted) {
+        setAuthChecking(false);
+      }
       return;
     }
 
-    if (!token) {
+    if (hasGoogleCallbackQuery) {
+      window.history.replaceState({}, "", window.location.pathname);
+      await finishWithRedirect(normalizeUserRole(roleFromQuery));
+      if (mounted) {
+        setAuthChecking(false);
+      }
       return;
     }
 
-    const normalizedRole = normalizeUserRole(roleFromQuery);
-    localStorage.setItem("token", token);
-    localStorage.setItem("userRole", normalizedRole);
-    if (userIdFromQuery) {
-      localStorage.setItem("userId", userIdFromQuery);
+    try {
+      const user = await getCurrentUser();
+      if (mounted && user) {
+        navigate(getRedirectRouteByRole(user.role), { replace: true });
+      }
+    } catch {
+      // user is not logged in yet
+    } finally {
+      if (mounted) {
+        setAuthChecking(false);
+      }
     }
+    };
 
-    window.history.replaceState({}, "", window.location.pathname);
-    navigate(getRedirectRouteByRole(normalizedRole), { replace: true });
+    run();
+
+    return () => {
+      mounted = false;
+    };
   }, [navigate]);
 
   // ── OTP helpers ──────────────────────────────────────────────────────────────
@@ -101,14 +145,12 @@ export default function AuthPage() {
         email: pendingUserData?.email,
         otp,
       });
-      const normalizedRole = normalizeUserRole(res.data.user?.role);
-      localStorage.setItem("token", res.data.token);
-      if (res.data.user?.id) localStorage.setItem("userId", res.data.user.id);
-      localStorage.setItem("userRole", normalizedRole);
-      const redirectRoute = getRedirectRouteByRole(normalizedRole);
+
+      const user = res?.data?.data?.user || res?.data?.user || (await getCurrentUser());
+      const redirectRoute = getRedirectRouteByRole(user?.role);
       navigate(redirectRoute);
     } catch (err) {
-      setOtpError(err.response?.data?.message || "Registration failed. Please try again.");
+      setOtpError(getApiErrorMessage(err, "Registration failed. Please try again."));
     } finally {
       setOtpLoading(false);
     }
@@ -163,14 +205,7 @@ export default function AuthPage() {
     setGoogleLoading(true);
     setGoogleError("");
 
-    if (!import.meta.env.VITE_API_BASE_URL && !import.meta.env.NEXT_PUBLIC_API_URL) {
-      setGoogleLoading(false);
-      setGoogleError("API base URL is not configured.");
-      return;
-    }
-
-    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.NEXT_PUBLIC_API_URL;
-    window.location.href = `${apiBaseUrl}/auth/google?frontend_origin=${window.location.origin}`;
+    window.location.href = getGoogleOAuthStartUrl();
   };
 
   const handleSubmit = async (e) => {
@@ -193,29 +228,33 @@ export default function AuthPage() {
         startResendCooldown(response.data?.resendAfter || 60);
         setTimeout(() => otpRefs.current[0]?.focus(), 100);
       } else {
-        const res = await api.post("/auth/login", {
+        const res = await loginUser({
           email: formData.email,
           password: formData.password,
         });
-        const normalizedRole = normalizeUserRole(res.data.user?.role);
-        localStorage.setItem("token", res.data.token);
-        if (res.data.user?.id) localStorage.setItem("userId", res.data.user.id);
-        localStorage.setItem("userRole", normalizedRole);
-        const redirectRoute = getRedirectRouteByRole(normalizedRole);
+        const user = res?.data?.data?.user || res?.data?.user || (await getCurrentUser());
+        const redirectRoute = getRedirectRouteByRole(user?.role);
         navigate(redirectRoute);
       }
     } catch (err) {
       console.error("[Auth] Error:", err);
-      const message =
-        err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        err?.message ||
-        "Something went wrong. Please try again.";
+      const message = getApiErrorMessage(err, "Something went wrong. Please try again.");
       setFormError(message);
     } finally {
       setLoading(false);
     }
   };
+
+  if (authChecking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center" style={{ background: pageBg }}>
+        <div className="flex items-center gap-3 text-sm" style={{ color: textSecondary }}>
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
+          Verifying session...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

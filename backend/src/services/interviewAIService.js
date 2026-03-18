@@ -1,5 +1,6 @@
 import openai from "../services/openai.js";
 import geminiClient from "../config/ai.js";
+import { CACHE_TTL, cacheKeys, hashCacheInput, readThroughCache } from "../utils/cache.js";
 
 function extractJSONArray(text) {
   const start = text.indexOf("[");
@@ -198,21 +199,28 @@ function generateQuestionsFromResume(resumeText) {
 }
 
 export async function generateInterviewQuestions(resumeText) {
-  try {
-    if (openai && process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'YOUR_OPENAI_API_KEY_HERE') {
+  const resumeHash = hashCacheInput(resumeText);
+  const key = cacheKeys.interviewQuestions(resumeHash);
+
+  const { data } = await readThroughCache({
+    key,
+    ttlSeconds: CACHE_TTL.interviewQuestions,
+    fetcher: async () => {
       try {
-        console.log("🤖 Trying OpenAI for question generation...");
-        
-        const response = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          messages: [
-            {
-              role: "system",
-              content: "You are an expert technical interviewer. Generate interview questions based on the candidate's resume."
-            },
-            {
-              role: "user",
-              content: `Generate exactly 5 technical interview questions based on this resume.
+        if (openai && process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'YOUR_OPENAI_API_KEY_HERE') {
+          try {
+            console.log("🤖 Trying OpenAI for question generation...");
+
+            const response = await openai.chat.completions.create({
+              model: "gpt-4o-mini",
+              messages: [
+                {
+                  role: "system",
+                  content: "You are an expert technical interviewer. Generate interview questions based on the candidate's resume."
+                },
+                {
+                  role: "user",
+                  content: `Generate exactly 5 technical interview questions based on this resume.
 Return ONLY a JSON array with this exact structure:
 [
   {
@@ -228,35 +236,35 @@ Resume:
 ${resumeText.slice(0, 2000)}
 
 Return ONLY the JSON array, no other text.`
+                }
+              ],
+              temperature: 0.7
+            });
+
+            let jsonText = response.choices[0].message.content.trim();
+
+            if (jsonText.includes('```json')) {
+              jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+            } else if (jsonText.includes('```')) {
+              jsonText = jsonText.replace(/```\n?/g, '');
             }
-          ],
-          temperature: 0.7
-        });
 
-        let jsonText = response.choices[0].message.content.trim();
-        
-        if (jsonText.includes('```json')) {
-          jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-        } else if (jsonText.includes('```')) {
-          jsonText = jsonText.replace(/```\n?/g, '');
-        }
-        
-        const parsed = JSON.parse(jsonText.trim());
-        
-        if (Array.isArray(parsed) && parsed.length >= 5) {
-          console.log("✅ OpenAI generated questions successfully");
-          return parsed.slice(0, 5);
-        }
-      } catch (openaiError) {
-        console.log("⚠️ OpenAI failed:", openaiError.message);
-      }
-    }
+            const parsed = JSON.parse(jsonText.trim());
 
-    if (geminiClient) {
-      try {
-        console.log("🤖 Trying Gemini AI for question generation...");
-        
-        const prompt = `Generate exactly 5 technical interview questions based on this resume.
+            if (Array.isArray(parsed) && parsed.length >= 5) {
+              console.log("✅ OpenAI generated questions successfully");
+              return parsed.slice(0, 5);
+            }
+          } catch (openaiError) {
+            console.log("⚠️ OpenAI failed:", openaiError.message);
+          }
+        }
+
+        if (geminiClient) {
+          try {
+            console.log("🤖 Trying Gemini AI for question generation...");
+
+            const prompt = `Generate exactly 5 technical interview questions based on this resume.
 Return ONLY a JSON array with this exact structure:
 [
   {
@@ -273,31 +281,34 @@ ${resumeText.slice(0, 2000)}
 
 Return ONLY the JSON array, no other text.`;
 
-        const response = await geminiClient.generateContent(prompt);
-        let jsonText = response.trim();
-        
-        if (jsonText.includes('```json')) {
-          jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-        } else if (jsonText.includes('```')) {
-          jsonText = jsonText.replace(/```\n?/g, '');
+            const response = await geminiClient.generateContent(prompt);
+            let jsonText = response.trim();
+
+            if (jsonText.includes('```json')) {
+              jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+            } else if (jsonText.includes('```')) {
+              jsonText = jsonText.replace(/```\n?/g, '');
+            }
+
+            const parsed = JSON.parse(jsonText.trim());
+
+            if (Array.isArray(parsed) && parsed.length >= 5) {
+              console.log("✅ Gemini AI generated questions successfully");
+              return parsed.slice(0, 5);
+            }
+          } catch (aiError) {
+            console.log("⚠️ Gemini AI failed:", aiError.message);
+          }
         }
-        
-        const parsed = JSON.parse(jsonText.trim());
-        
-        if (Array.isArray(parsed) && parsed.length >= 5) {
-          console.log("✅ Gemini AI generated questions successfully");
-          return parsed.slice(0, 5);
-        }
-      } catch (aiError) {
-        console.log("⚠️ Gemini AI failed:", aiError.message);
+
+        console.log("📚 Using intelligent fallback - generating resume-specific questions");
+        return generateQuestionsFromResume(resumeText);
+      } catch (err) {
+        console.error("Question generation error:", err.message);
+        return generateQuestionsFromResume(resumeText);
       }
-    }
-    
-    console.log("📚 Using intelligent fallback - generating resume-specific questions");
-    return generateQuestionsFromResume(resumeText);
-    
-  } catch (err) {
-    console.error("Question generation error:", err.message);
-    return generateQuestionsFromResume(resumeText);
-  }
+    },
+  });
+
+  return data;
 }

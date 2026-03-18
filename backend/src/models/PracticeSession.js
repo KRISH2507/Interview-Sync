@@ -44,4 +44,6 @@ const practiceSessionSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+practiceSessionSchema.index({ userId: 1, status: 1, createdAt: -1 });
+
 export default mongoose.model("PracticeSession", practiceSessionSchema);
