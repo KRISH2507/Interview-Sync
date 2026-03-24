@@ -1,8 +1,12 @@
 import csurf from "csurf";
 
 const COOKIE_DOMAIN = String(process.env.AUTH_COOKIE_DOMAIN || "").trim() || undefined;
-const SHOULD_USE_SECURE_COOKIES =
-  String(process.env.AUTH_COOKIE_SECURE || "true").trim().toLowerCase() === "true";
+// Render.com sets RENDER=true automatically — use it as a production signal even if NODE_ENV is missing
+const IS_PRODUCTION =
+  process.env.NODE_ENV === "production" ||
+  String(process.env.RENDER || "").toLowerCase() === "true" ||
+  String(process.env.AUTH_COOKIE_SECURE || "").trim().toLowerCase() === "true";
+const SHOULD_USE_SECURE_COOKIES = IS_PRODUCTION;
 const COOKIE_SAME_SITE = SHOULD_USE_SECURE_COOKIES ? "none" : "lax";
 
 const buildCrossSiteCookieOptions = (maxAgeMs, httpOnly) => ({

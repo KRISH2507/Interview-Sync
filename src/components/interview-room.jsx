@@ -231,14 +231,14 @@ export default function InterviewRoom({ viewRole }) {
 
         const roomRes = await getInterviewRoom(roomId);
         if (!isMounted) return;
-        setRoom(roomRes.data?.room || null);
+        setRoom(roomRes.data?.data?.room || null);
 
         const localDraft = readInterviewDraftFromLocal(roomId);
         let remoteDraft = null;
 
         try {
           const draftRes = await getInterviewRoomDraft(roomId);
-          remoteDraft = draftRes.data?.draft || null;
+          remoteDraft = draftRes.data?.data?.draft || null;
         } catch (draftError) {
           console.error("Failed to fetch room draft:", draftError);
         }
@@ -247,7 +247,7 @@ export default function InterviewRoom({ viewRole }) {
 
         if (!nextDraft) {
           const questionRes = await getRandomCodeQuestion("medium");
-          const nextQuestion = questionRes.data?.question || questionRes.data;
+          const nextQuestion = questionRes.data?.data?.question || null;
           nextDraft = {
             roomId,
             question: nextQuestion || null,
@@ -389,7 +389,7 @@ export default function InterviewRoom({ viewRole }) {
     try {
       setError("");
       const res = await runCode({ code, language, input });
-      setRunResult(res.data);
+      setRunResult(res.data?.data || null);
     } catch (err) {
       setError(err.response?.data?.details || err.response?.data?.message || "Failed to run code");
     }
@@ -403,7 +403,7 @@ export default function InterviewRoom({ viewRole }) {
     try {
       setError("");
       const res = await submitCode({ questionId: question.id, code, language });
-      setSubmitResult(res.data);
+      setSubmitResult(res.data?.data || null);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to submit code");
     }

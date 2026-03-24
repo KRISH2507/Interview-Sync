@@ -202,7 +202,11 @@ api.interceptors.response.use(
 
 export const uploadResume = (formData) =>
   api.post("/resume/upload", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
+    headers: {
+      "Content-Type": "multipart/form-data",
+      // Explicitly forward CSRF token — multipart requests strip base headers
+      ...(csrfTokenInMemory ? { "X-CSRF-Token": csrfTokenInMemory } : {}),
+    },
   });
 
 export const startInterview = () =>

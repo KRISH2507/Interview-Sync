@@ -2,12 +2,73 @@ import Resume from "../models/Resume.js";
 import User from "../models/User.js";
 import geminiClient from "../config/ai.js";
 import mammoth from "mammoth";
+import fs from "fs";
 import { invalidateDashboardCache } from "../utils/cache.js";
 import { sendError, sendSuccess } from "../utils/response.js";
 
+const extractJsonFromText = (text = "") => {
+  const normalized = String(text || "").trim();
+  if (!normalized) {
+    return null;
+  }
+
+  const withoutCodeFence = normalized
+    .replace(/```json\n?/gi, "")
+    .replace(/```\n?/g, "")
+    .trim();
+
+  const start = withoutCodeFence.indexOf("{");
+  const end = withoutCodeFence.lastIndexOf("}");
+  if (start === -1 || end === -1 || end <= start) {
+    return null;
+  }
+
+  const jsonSlice = withoutCodeFence.slice(start, end + 1);
+  return JSON.parse(jsonSlice);
+};
+
+const isValidAnalysis = (analysis) =>
+  analysis &&
+  Array.isArray(analysis.skills) &&
+  Array.isArray(analysis.projects) &&
+  Array.isArray(analysis.strengths);
+
+const parseResumeText = async (file) => {
+  const mimeType = String(file?.mimetype || "").toLowerCase();
+  const fileName = String(file?.originalname || "").toLowerCase();
+  const isPdf = mimeType === "application/pdf" || fileName.endsWith(".pdf");
+  const isDocx =
+    mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    fileName.endsWith(".docx");
+
+  const hasBuffer = Buffer.isBuffer(file?.buffer);
+  const hasPath = Boolean(file?.path);
+
+  if (!isPdf && !isDocx) {
+    throw new Error("Unsupported file type. Please use PDF or DOCX.");
+  }
+
+  if (!hasBuffer && !hasPath) {
+    throw new Error("Uploaded file has no buffer/path. Ensure multer is configured and field name is 'resume'.");
+  }
+
+  if (isDocx) {
+    const result = hasBuffer
+      ? await mammoth.extractRawText({ buffer: file.buffer })
+      : await mammoth.extractRawText({ path: file.path });
+    return String(result?.value || "");
+  }
+
+  const pdfParseModule = await import("pdf-parse");
+  const parsePdf = pdfParseModule?.default || pdfParseModule;
+  const pdfBuffer = hasBuffer ? file.buffer : fs.readFileSync(file.path);
+  const result = await parsePdf(pdfBuffer);
+  return String(result?.text || "");
+};
+
 export const uploadResume = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = String(req.user.id); // ✅ FIX: always string
     const file = req.file;
 
     if (!file) {
@@ -17,24 +78,16 @@ export const uploadResume = async (req, res) => {
     let rawText = "";
 
     try {
-      if (file.mimetype === "application/pdf") {
-        return sendError(
-          res,
-          400,
-          "PDF support coming soon. Please upload a DOCX file or provide text directly."
-        );
-      } else if (
-        file.mimetype ===
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-      ) {
-        const result = await mammoth.extractRawText({ buffer: file.buffer });
-        rawText = result.value;
-      } else {
-        return sendError(res, 400, "Unsupported file type. Please use DOCX.");
-      }
+      rawText = await parseResumeText(file);
     } catch (fileError) {
       console.error("File parsing error:", fileError);
-      return sendError(res, 400, "Failed to parse file");
+      return sendError(res, 400, "Failed to parse file", {
+        error: fileError?.message || "Unknown file parsing error",
+        mimeType: file?.mimetype || "unknown",
+        fileName: file?.originalname || "unknown",
+        hasBuffer: Boolean(file?.buffer),
+        hasPath: Boolean(file?.path),
+      });
     }
 
     if (!rawText || rawText.trim().length < 50) {
@@ -62,15 +115,11 @@ Return ONLY the JSON object, no other text.`;
 
         const aiResponse = await geminiClient.generateContent(prompt);
         console.log("Gemini API response received");
-        
-        let jsonText = aiResponse.trim();
-        if (jsonText.includes('```json')) {
-          jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-        } else if (jsonText.includes('```')) {
-          jsonText = jsonText.replace(/```\n?/g, '');
+
+        analysis = extractJsonFromText(aiResponse);
+        if (!isValidAnalysis(analysis)) {
+          throw new Error("Gemini response JSON missing required fields");
         }
-        
-        analysis = JSON.parse(jsonText.trim());
         console.log("AI Analysis successful:", analysis);
       } catch (aiError) {
         console.warn("AI analysis failed, using fallback:", aiError.message);
@@ -150,7 +199,8 @@ Return ONLY the JSON object, no other text.`;
       skills: analysis.skills || [],
     });
 
-    await invalidateDashboardCache(userId);
+    // ✅ FIX: pass userId as string to avoid Redis type error
+    await invalidateDashboardCache(String(userId));
 
     return sendSuccess(res, 201, "Resume uploaded and analyzed successfully", {
       score,
@@ -158,6 +208,9 @@ Return ONLY the JSON object, no other text.`;
     });
   } catch (error) {
     console.error("Resume upload error:", error);
-    return sendError(res, 500, "Resume processing failed", { error: error.message });
+    return sendError(res, 500, "Resume processing failed", {
+      error: error?.message || "Unknown resume processing error",
+      stack: process.env.NODE_ENV === "production" ? undefined : error?.stack,
+    });
   }
 };

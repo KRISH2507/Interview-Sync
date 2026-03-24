@@ -69,7 +69,7 @@ export default function CandidateDashboard() {
     async function loadDashboard() {
       try {
         const res = await api.get("/dashboard");
-        setDashboard(res.data);
+        setDashboard(res?.data?.data || null);
       } catch (err) {
         console.error("Failed to load dashboard", err);
       } finally {
@@ -84,8 +84,9 @@ export default function CandidateDashboard() {
     async function loadResults() {
       try {
         const res = await getMyInterviewResults();
-        const normalized = Array.isArray(res.data)
-          ? res.data.map(normalizeInterviewResult).filter(Boolean)
+        const results = res?.data?.data?.results;
+        const normalized = Array.isArray(results)
+          ? results.map(normalizeInterviewResult).filter(Boolean)
           : [];
         setInterviewResults(normalized);
       } catch (err) {

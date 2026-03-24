@@ -11,8 +11,9 @@ const REFRESH_COOKIE_NAME = process.env.REFRESH_TOKEN_COOKIE_NAME || "refreshTok
 const ACCESS_COOKIE_MAX_AGE_MS = 15 * 60 * 1000;
 const REFRESH_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const COOKIE_DOMAIN = String(process.env.AUTH_COOKIE_DOMAIN || "").trim() || undefined;
+const DEFAULT_SECURE_COOKIE = process.env.NODE_ENV === "production" ? "true" : "false";
 const SHOULD_USE_SECURE_COOKIES =
-  String(process.env.AUTH_COOKIE_SECURE || "true").trim().toLowerCase() === "true";
+  String(process.env.AUTH_COOKIE_SECURE || DEFAULT_SECURE_COOKIE).trim().toLowerCase() === "true";
 const COOKIE_SAME_SITE = SHOULD_USE_SECURE_COOKIES ? "none" : "lax";
 
 const getJwtSecret = () => {

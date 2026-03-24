@@ -72,7 +72,8 @@ export default function CodePractice() {
 
     try {
       const res = await getRandomCodeQuestion(selectedDifficulty);
-      const nextQuestion = res.data?.question || res.data;
+      const payload = res.data?.data || {};
+      const nextQuestion = payload.question || null;
       setQuestion(nextQuestion || null);
       const savedDraft = nextQuestion?.id ? readCodePracticeDraft(nextQuestion.id, language) : null;
       if (savedDraft) {
@@ -140,7 +141,7 @@ export default function CodePractice() {
 
     try {
       const res = await runCode({ code, language, input });
-      setRunResult(res.data);
+      setRunResult(res.data?.data || null);
     } catch (err) {
       setError(err.response?.data?.details || err.response?.data?.message || "Failed to run code");
     } finally {
@@ -168,7 +169,7 @@ export default function CodePractice() {
         code,
         language,
       });
-      setSubmitResult(res.data);
+      setSubmitResult(res.data?.data || null);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to submit code");
     } finally {

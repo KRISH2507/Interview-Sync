@@ -28,8 +28,8 @@ export default function CandidateVideoInterview() {
         getInterviewRooms(),
       ]);
 
-      setRequests(requestsRes.data?.requests || []);
-      setRooms(roomsRes.data?.rooms || []);
+      setRequests(requestsRes.data?.data?.requests || []);
+      setRooms(roomsRes.data?.data?.rooms || []);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load interview requests");
     } finally {
@@ -88,7 +88,7 @@ export default function CandidateVideoInterview() {
     setError("");
     try {
       const res = await requestInterview();
-      const nextRequest = res.data?.request;
+      const nextRequest = res.data?.data?.request;
       if (nextRequest) {
         setRequests((prev) => {
           const existing = prev.filter((item) => item._id !== nextRequest._id);

@@ -57,7 +57,7 @@ export default function AdminDashboard() {
     setError("");
     try {
       const res = await createInterviewRoom({ candidateId, interviewerId });
-      const nextRoomId = res.data?.room?.roomId || res.data?.roomId;
+      const nextRoomId = res.data?.data?.room?.roomId || res.data?.data?.roomId;
       if (!nextRoomId) {
         throw new Error("Interview room was created but no room ID was returned");
       }

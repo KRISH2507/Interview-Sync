@@ -171,17 +171,19 @@ export default function InterviewPractice() {
       try {
         if (mode === "dsa") {
           const res = await startPractice();
-          const qs = res.data.questions;
+          const payload = res?.data?.data || {};
+          const qs = payload.questions;
           if (!qs || qs.length === 0) throw new Error("No questions returned");
           setQuestions(qs);
-          setSessionId(res.data.sessionId);
+          setSessionId(payload.sessionId);
           setAnswers(new Array(qs.length).fill(null));
         } else {
           const res = await startInterview();
-          const qs = res.data.questions;
+          const payload = res?.data?.data || {};
+          const qs = payload.questions;
           if (!qs || qs.length === 0) throw new Error("No questions returned from server");
           setQuestions(qs);
-          setSessionId(res.data.interviewId);
+          setSessionId(payload.interviewId);
           setAnswers(new Array(qs.length).fill(null));
         }
       } catch (err) {
@@ -281,18 +283,20 @@ export default function InterviewPractice() {
         res = await submitInterview(sessionId, answers);
       }
 
+      const payload = res?.data?.data || {};
+
       const totalQ = questions.length;
-      const serverScore = typeof res.data.score === "number"
-        ? res.data.score
-        : typeof res.data.overallScore === "number"
-          ? res.data.overallScore
+      const serverScore = typeof payload.score === "number"
+        ? payload.score
+        : typeof payload.overallScore === "number"
+          ? payload.overallScore
           : 0;
       const correctCount =
-        typeof res.data.correctAnswers === "number"
-          ? res.data.correctAnswers
+        typeof payload.correctAnswers === "number"
+          ? payload.correctAnswers
           : Math.round((serverScore / 100) * totalQ);
-      const accuracy = typeof res.data.accuracyPercentage === "number"
-        ? res.data.accuracyPercentage
+      const accuracy = typeof payload.accuracyPercentage === "number"
+        ? payload.accuracyPercentage
         : serverScore;
 
       navigate("/completion", {

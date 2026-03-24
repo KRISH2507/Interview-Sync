@@ -28,8 +28,8 @@ export default function RecruiterInterviews() {
           getInterviewRooms(),
           getInterviewRequests(),
         ]);
-        setRooms(roomsRes.data?.rooms || []);
-        setRequests(requestsRes.data?.requests || []);
+        setRooms(roomsRes.data?.data?.rooms || []);
+        setRequests(requestsRes.data?.data?.requests || []);
       } catch (err) {
         setError(err.response?.data?.message || "Failed to load interviews");
       } finally {
@@ -43,7 +43,7 @@ export default function RecruiterInterviews() {
   const handleViewResult = async (candidateId) => {
     try {
       const res = await getInterviewResults(candidateId);
-      const results = res.data?.results || [];
+      const results = res.data?.data?.results || [];
       const map = {};
       for (const result of results) {
         map[result.roomId] = result;
@@ -59,8 +59,8 @@ export default function RecruiterInterviews() {
       setStartingRequestId(requestId);
       setError("");
       const res = await startInterviewFromRequest(requestId);
-      const nextRoom = res.data?.room;
-      const nextRequest = res.data?.request;
+      const nextRoom = res.data?.data?.room;
+      const nextRequest = res.data?.data?.request;
 
       if (nextRoom) {
         setRooms((prev) => {

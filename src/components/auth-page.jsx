@@ -239,6 +239,19 @@ export default function AuthPage() {
     } catch (err) {
       console.error("[Auth] Error:", err);
       const message = getApiErrorMessage(err, "Something went wrong. Please try again.");
+
+      if (!isLogin) {
+        const normalizedMessage = String(message || "").toLowerCase();
+        if (normalizedMessage.includes("already exists")) {
+          setIsLogin(true);
+          setOtpStep(false);
+          setPendingUserData(null);
+          setOtpDigits(["", "", "", "", "", ""]);
+          setFormError(message);
+          return;
+        }
+      }
+
       setFormError(message);
     } finally {
       setLoading(false);

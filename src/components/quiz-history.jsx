@@ -90,14 +90,16 @@ export default function QuizHistory() {
           getMyInterviewResults(),
         ]);
 
-        setDashboard(dashboardRes.data);
+        const dashboardData = dashboardRes.data?.data || null;
+        setDashboard(dashboardData);
 
-        const directResults = Array.isArray(interviewResultsRes.data)
-          ? interviewResultsRes.data.map(normalizeInterviewResult).filter(Boolean)
+        const directResultsPayload = interviewResultsRes.data?.data?.results;
+        const directResults = Array.isArray(directResultsPayload)
+          ? directResultsPayload.map(normalizeInterviewResult).filter(Boolean)
           : [];
 
-        const dashboardResults = Array.isArray(dashboardRes.data?.interviewResults)
-          ? dashboardRes.data.interviewResults.map(normalizeInterviewResult).filter(Boolean)
+        const dashboardResults = Array.isArray(dashboardData?.interviewResults)
+          ? dashboardData.interviewResults.map(normalizeInterviewResult).filter(Boolean)
           : [];
 
         setInterviewResults(directResults.length > 0 ? directResults : dashboardResults);

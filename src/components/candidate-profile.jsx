@@ -54,10 +54,11 @@ export default function CandidateProfile() {
     async function loadProfile() {
       try {
         const res = await getProfile();
+        const payload = res?.data?.data || {};
         setProfile({
           ...profile,
-          ...res.data,
-          skills: res.data.skills || [],
+          ...payload,
+          skills: payload.skills || [],
         });
       } catch (err) {
         console.error("Failed to load profile", err);

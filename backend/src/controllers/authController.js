@@ -26,6 +26,36 @@ const OTP_KEY_PREFIX = "auth:otp:register";
 const OTP_ATTEMPT_PREFIX = "auth:otp:attempts";
 const OTP_COOLDOWN_PREFIX = "auth:otp:cooldown";
 
+// --- In-memory OTP fallback (used when Redis is unavailable) ---
+// Entries: key -> { value, expiresAt }
+const _memStore = new Map();
+const _memGet = (key) => {
+  const entry = _memStore.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) { _memStore.delete(key); return null; }
+  return entry.value;
+};
+const _memSet = (key, value, ttlSeconds) => {
+  _memStore.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
+};
+const _memSetNX = (key, value, ttlSeconds) => {
+  if (_memGet(key) !== null) return false;
+  _memSet(key, value, ttlSeconds);
+  return true;
+};
+const _memIncr = (key, ttlSeconds) => {
+  const cur = Number(_memGet(key) || 0) + 1;
+  _memSet(key, String(cur), ttlSeconds);
+  return cur;
+};
+const _memTtl = (key) => {
+  const entry = _memStore.get(key);
+  if (!entry) return -2;
+  const remaining = Math.ceil((entry.expiresAt - Date.now()) / 1000);
+  return remaining > 0 ? remaining : -2;
+};
+const _memDel = (...keys) => keys.forEach((k) => _memStore.delete(k));
+
 const GOOGLE_OAUTH_SCOPES = ["email", "profile"];
 
 const googleTokenClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -210,27 +240,42 @@ export const sendRegistrationOtp = async (req, res) => {
     const normalizedEmail = normalizeEmail(email);
     const existingUser = await User.findOne({ email: normalizedEmail }).lean();
     if (existingUser) {
-      return sendError(res, 400, "User already exists");
+      const provider = String(existingUser.provider || "local").toLowerCase();
+      const message =
+        provider === "google"
+          ? "Account already exists with Google. Please continue with Google sign-in."
+          : "Account already exists. Please sign in.";
+      return sendError(res, 409, message);
     }
 
     const redis = await getRedisClient();
-    if (!redis) {
-      return sendError(res, 503, "OTP service is temporarily unavailable");
-    }
-
     const cooldownKey = buildOtpCooldownKey(normalizedEmail);
-    const cooldownSet = await redis.set(cooldownKey, "1", {
-      EX: OTP_RESEND_COOLDOWN_SECONDS,
-      NX: true,
-    });
 
-    if (!cooldownSet) {
-      const retryAfter = await redis.ttl(cooldownKey);
-      return sendError(
-        res,
-        429,
-        `Please wait ${Math.max(retryAfter, 1)} seconds before requesting another OTP`
-      );
+    // Enforce resend cooldown (Redis or in-memory fallback)
+    if (redis) {
+      const cooldownSet = await redis.set(cooldownKey, "1", {
+        EX: OTP_RESEND_COOLDOWN_SECONDS,
+        NX: true,
+      });
+      if (!cooldownSet) {
+        const retryAfter = await redis.ttl(cooldownKey);
+        return sendError(
+          res,
+          429,
+          `Please wait ${Math.max(retryAfter, 1)} seconds before requesting another OTP`
+        );
+      }
+    } else {
+      // In-memory fallback when Redis is unavailable
+      const cooldownSet = _memSetNX(cooldownKey, "1", OTP_RESEND_COOLDOWN_SECONDS);
+      if (!cooldownSet) {
+        const retryAfter = _memTtl(cooldownKey);
+        return sendError(
+          res,
+          429,
+          `Please wait ${Math.max(retryAfter, 1)} seconds before requesting another OTP`
+        );
+      }
     }
 
     const otp = String(Math.floor(100000 + Math.random() * 900000));
@@ -243,10 +288,17 @@ export const sendRegistrationOtp = async (req, res) => {
       otp,
     };
 
-    await redis.set(buildOtpKey(normalizedEmail), JSON.stringify(otpPayload), {
-      EX: OTP_TTL_SECONDS,
-    });
-    await redis.del(buildOtpAttemptKey(normalizedEmail));
+    // Store OTP (Redis or in-memory fallback)
+    if (redis) {
+      await redis.set(buildOtpKey(normalizedEmail), JSON.stringify(otpPayload), {
+        EX: OTP_TTL_SECONDS,
+      });
+      await redis.del(buildOtpAttemptKey(normalizedEmail));
+    } else {
+      _memSet(buildOtpKey(normalizedEmail), JSON.stringify(otpPayload), OTP_TTL_SECONDS);
+      _memDel(buildOtpAttemptKey(normalizedEmail));
+    }
+
 
     try {
       await sendOtpEmail({
@@ -255,8 +307,12 @@ export const sendRegistrationOtp = async (req, res) => {
         otp,
       });
     } catch (error) {
-      await redis.del(buildOtpKey(normalizedEmail));
-      await redis.del(cooldownKey);
+      if (redis) {
+        await redis.del(buildOtpKey(normalizedEmail));
+        await redis.del(cooldownKey);
+      } else {
+        _memDel(buildOtpKey(normalizedEmail), cooldownKey);
+      }
 
       const rawErrorMessage = String(error?.message || "");
       const isEmailJsSecurityBlock =
@@ -310,19 +366,27 @@ export const register = async (req, res) => {
     }
 
     const redis = await getRedisClient();
-    if (!redis) {
-      return sendError(res, 503, "OTP service is temporarily unavailable");
-    }
+    const otpKey = buildOtpKey(normalizedEmail);
+    const attemptKey = buildOtpAttemptKey(normalizedEmail);
 
-    const storedOtpPayload = await redis.get(buildOtpKey(normalizedEmail));
+    // Retrieve stored OTP payload (Redis or in-memory fallback)
+    const storedOtpPayload = redis
+      ? await redis.get(otpKey)
+      : _memGet(otpKey);
+
     if (!storedOtpPayload) {
       return sendError(res, 400, "OTP expired or not found. Please request a new OTP.");
     }
 
-    const attemptKey = buildOtpAttemptKey(normalizedEmail);
-    const attempts = await redis.incr(attemptKey);
-    if (attempts === 1) {
-      await redis.expire(attemptKey, OTP_TTL_SECONDS);
+    // Track and limit OTP attempts (Redis or in-memory fallback)
+    let attempts;
+    if (redis) {
+      attempts = await redis.incr(attemptKey);
+      if (attempts === 1) {
+        await redis.expire(attemptKey, OTP_TTL_SECONDS);
+      }
+    } else {
+      attempts = _memIncr(attemptKey, OTP_TTL_SECONDS);
     }
 
     if (attempts > OTP_MAX_ATTEMPTS) {
@@ -336,8 +400,12 @@ export const register = async (req, res) => {
 
     const existingUser = await User.findOne({ email: normalizedEmail }).lean();
     if (existingUser) {
-      await redis.del(buildOtpKey(normalizedEmail));
-      await redis.del(attemptKey);
+      if (redis) {
+        await redis.del(otpKey);
+        await redis.del(attemptKey);
+      } else {
+        _memDel(otpKey, attemptKey);
+      }
       return sendError(res, 400, "User already exists");
     }
 
@@ -349,9 +417,14 @@ export const register = async (req, res) => {
       provider: "local",
     });
 
-    await redis.del(buildOtpKey(normalizedEmail));
-    await redis.del(attemptKey);
-    await redis.del(buildOtpCooldownKey(normalizedEmail));
+    // Clean up OTP keys
+    if (redis) {
+      await redis.del(otpKey);
+      await redis.del(attemptKey);
+      await redis.del(buildOtpCooldownKey(normalizedEmail));
+    } else {
+      _memDel(otpKey, attemptKey, buildOtpCooldownKey(normalizedEmail));
+    }
 
     return sendAuthPayload(req, res, user, "Registration successful", 201);
   } catch {
