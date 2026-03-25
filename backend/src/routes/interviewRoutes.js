@@ -19,12 +19,13 @@ import {
   getInterviewQuestionsJobStatus,
 } from "../controllers/interviewController.js";
 import { protect } from "../middleware/authMiddleware.js";
+import { aiRouteLimiter } from "../middleware/routeRateLimitProfiles.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 const router = express.Router();
 
-router.post("/start", protect, asyncHandler(startInterview));
-router.post("/start-async", protect, asyncHandler(enqueueInterviewQuestionsJob));
+router.post("/start", aiRouteLimiter, protect, asyncHandler(startInterview));
+router.post("/start-async", aiRouteLimiter, protect, asyncHandler(enqueueInterviewQuestionsJob));
 router.get("/jobs/:jobId", protect, asyncHandler(getInterviewQuestionsJobStatus));
 router.post("/submit", protect, asyncHandler(submitInterview));
 router.post("/create", protect, asyncHandler(createInterviewRoom));
