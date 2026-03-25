@@ -67,7 +67,7 @@ app.get("/ping", publicRouteLimiter, (_req, res) => {
 });
 
 app.use("/api/resume", resumeRoutes);
-app.use("/api/interview", aiRouteLimiter, interviewRoutes);
+app.use("/api/interview", interviewRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/auth", authRouteLimiter, authRoutes);
